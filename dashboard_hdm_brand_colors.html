@@ -1,0 +1,3080 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital del Móvil - Dashboard de Operaciones</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #0f0204;
+            --glass-bg: rgba(20, 5, 5, 0.60);
+            --glass-border: rgba(178, 34, 34, 0.25);
+            /* Colores Corporativos Hospital del Móvil */
+            --brand-red: #B22222;
+            --brand-red-dark: #8B1A1A;
+            --brand-red-light: #FFE4E1;
+            /* Colores por Tabla */
+            --color-ventas: #4CAF50;      /* Verde - Ventas */
+            --color-anticipos: #FFC107;   /* Amarillo - Anticipos */
+            --color-servicios: #2196F3;   /* Azul - Servicios */
+            --color-compras: #FF9800;     /* Naranja - Compras */
+            --color-gastos: #DC3545;      /* Rojo - Gastos */
+            --color-flujo: #9C27B0;       /* Lila - Flujo de Efectivo */
+            /* Compatibilidad con nombres anteriores */
+            --neon-red: #B22222;
+            --neon-blue: #2196F3;
+            --neon-yellow: #FFC107;
+            --neon-green: #4CAF50;
+            --text-main: #ecf0f1;
+            --text-mute: #aab7b8;
+            --neon-lila: #9C27B0;
+            --neon-orange: #FF9800;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle at 50% 30%, rgba(60, 10, 20, 0.4) 0%, transparent 60%),
+                linear-gradient(rgba(15, 2, 4, 0.85), rgba(15, 2, 4, 0.95)),
+                url('https://www.transparenttextures.com/patterns/cubes.png');
+            background-blend-mode: normal;
+            background-size: auto, auto, 400px;
+            background-attachment: fixed;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid var(--neon-red);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            margin: 20px;
+            max-width: 600px;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            height: 100vh;
+            position: relative;
+        }
+
+        .sidebar {
+            background: rgba(15, 5, 5, 0.4);
+            backdrop-filter: blur(15px);
+            border-right: 1px solid var(--glass-border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 50%;
+            padding: 15px;
+            width: 140px;
+            height: 140px;
+            margin-left: auto;
+            margin-right: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--brand-red);
+            box-shadow: 0 0 20px rgba(178, 34, 34, 0.3);
+        }
+
+        .logo-img {
+            width: 100%;
+            border-radius: 50%;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            color: var(--text-mute);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 15px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(178, 34, 34, 0.15);
+            color: white;
+            padding-left: 20px;
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(90deg, rgba(178, 34, 34, 0.25), transparent);
+            border-left: 4px solid var(--brand-red);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .main-content {
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--glass-bg);
+            padding: 15px 25px;
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 30px;
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .config-section {
+            background: var(--glass-bg);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 30px;
+            backdrop-filter: blur(8px);
+        }
+
+        .config-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .config-item {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .config-item label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-mute);
+            font-size: 14px;
+        }
+
+        .config-item select,
+        .config-item input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 1px solid var(--glass-border);
+            padding: 8px 15px;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .btn-reset {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-reset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .dashboard-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .dashboard-section.active-section {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .glass-card {
+            background: rgba(40, 5, 10, 0.25);
+            border: 1px solid rgba(178, 34, 34, 0.25);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            background: rgba(40, 5, 10, 0.35);
+            border-color: rgba(178, 34, 34, 0.4);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--brand-red);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: var(--text-mute);
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--brand-red);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(178, 34, 34, 0.08);
+        }
+
+        .badge-folio {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-venta {
+            background: rgba(76, 175, 80, 0.2);
+            color: var(--color-ventas);
+            border: 1px solid var(--color-ventas);
+        }
+
+        .badge-recep {
+            background: rgba(33, 150, 243, 0.2);
+            color: var(--color-servicios);
+            border: 1px solid var(--color-servicios);
+        }
+
+        .badge-anticipo {
+            background: rgba(255, 193, 7, 0.2);
+            color: var(--color-anticipos);
+            border: 1px solid var(--color-anticipos);
+        }
+
+
+        /* ── Sticky header de tabla ───────────────────────────── */
+        #ventas-main-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: rgba(15,2,4,0.97);
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* ── Collapsible card body ───────────────────────────── */
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .collapsible-header:hover { opacity: 0.85; }
+        /* ── Servicios: botones de dimensión y filtro folios ── */
+        .srv-dim-btn {
+            font-size: 11px; padding: 4px 12px; border-radius: 10px; cursor: pointer;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+            color: var(--text-mute); transition: all 0.2s;
+        }
+        .srv-dim-btn.active, .srv-dim-btn:hover {
+            background: rgba(33, 150, 243, 0.2);
+            border-color: rgba(33, 150, 243, 0.5);
+            color: var(--color-servicios);
+        }
+        .srv-folio-filter-btn {
+            font-size: 11px; padding: 4px 12px; border-radius: 10px; cursor: pointer;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+            color: var(--text-mute); transition: all 0.2s;
+        }
+        .srv-folio-filter-btn.active, .srv-folio-filter-btn:hover {
+            background: rgba(156, 39, 176, 0.2);
+            border-color: rgba(156, 39, 176, 0.5);
+            color: var(--color-flujo);
+        }
+        #srv-cards {
+            display: contents;
+        }
+        
+                .collapsible-body { transition: opacity 0.2s; }
+        .collapsible-body.collapsed { display: none; }
+        .collapse-arrow { transition: transform 0.2s; font-size: 13px; }
+        .collapsed-arrow { transform: rotate(-90deg); }
+
+        /* ── Fila de subdetalle resaltada ───────────────────── */
+        .subrow-frame td {
+            border-left: 3px solid rgba(33, 150, 243, 0.5);
+            border-bottom: 2px solid rgba(33, 150, 243, 0.25);
+        }
+
+        /* ── Proyección card ─────────────────────────────────── */
+        .proy-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .proy-label {
+            font-size: 11px;
+            color: var(--text-mute);
+            margin-top: 2px;
+        }
+        .proy-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .proy-row:last-child { border-bottom: none; }
+
+        /* ── badge-compra ────────────────────────────────────── */
+        .badge-compra {
+            background: rgba(249,115,22,0.2);
+            color: #f97316;
+            border: 1px solid #f97316;
+        }
+
+        /* Utilidades de Grid */
+        .span-6 { grid-column: span 6; }
+        .span-4 { grid-column: span 4; }
+        .span-3 { grid-column: span 3; }
+        .span-12 { grid-column: span 12; }
+
+        /* Chart containers */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 15px;
+        }
+
+        .chart-container-small {
+            position: relative;
+            height: 200px;
+            margin-top: 15px;
+        }
+
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        .connection-status.error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div style="color: white; font-size: 18px;">Cargando datos del sistema...</div>
+        <div id="loading-error" style="display: none;" class="error-message"></div>
+    </div>
+
+    <!-- Connection Status -->
+    <div id="connection-status" class="connection-status" style="display: none;">
+        <i class="fas fa-check-circle"></i> Conectado a Google Sheets
+    </div>
+
+    <div class="app-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <img src="https://i.imgur.com/6R6fPFf.gif" alt="Hospital del Móvil" class="logo-img"
+                     onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
+                <div id="logo-fallback" style="display:none; text-align:center; padding:20px 10px;">
+                    <div style="font-size:22px; font-weight:700; color:#0066cc; line-height:1.2;">
+                        Hospital<br>del Móvil
+                    </div>
+                    <div style="font-size:11px; color:#666; margin-top:5px; font-weight:500;">ZONA ROSA</div>
+                </div>
+            </div>
+
+            <nav>
+                <div class="nav-btn active" onclick="switchSection('configuracion')">
+                    <i class="fas fa-cog"></i>
+                    <span>⚙️ Configuración</span>
+                </div>
+                <div class="nav-btn" onclick="switchSection('ventas')">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>📗 Ventas</span>
+                </div>
+                <div class="nav-btn" onclick="switchSection('servicios')">
+                    <i class="fas fa-tools"></i>
+                    <span>📘 Servicios</span>
+                </div>
+                <div class="nav-btn" onclick="switchSection('anticipos')">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <span>📒 Anticipos</span>
+                </div>
+                <div class="nav-btn" onclick="switchSection('compras')">
+                    <i class="fas fa-boxes"></i>
+                    <span>🛒 Compras</span>
+                </div>
+                <div class="nav-btn" onclick="switchSection('gastos')">
+                    <i class="fas fa-receipt"></i>
+                    <span>📕 Gastos</span>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- Header Controls -->
+            <div class="header-controls">
+                <div>
+                    <h1 style="margin: 0; font-size: 24px;">
+                        Hospital del Móvil - Dashboard de Operaciones
+                    </h1>
+                    <p style="margin: 5px 0 0 0; color: var(--text-mute); font-size: 14px;">
+                        Zona Rosa
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button onclick="refreshData()" class="btn-reset">
+                        <i class="fas fa-sync-alt"></i> Actualizar Datos
+                    </button>
+                    <span id="last-update" style="font-size: 12px; color: var(--text-mute);"></span>
+                </div>
+            </div>
+
+            <!-- SECCIÓN: CONFIGURACIÓN -->
+            <section id="section-configuracion" class="dashboard-section active-section">
+                <div class="glass-card span-12">
+                    <h2 class="card-title">
+                        <i class="fas fa-sliders-h"></i>
+                        Configuración del Dashboard
+                    </h2>
+
+                    <div class="config-section">
+                        <h3 style="color: var(--neon-yellow); margin-top: 0;">Estado de Conexión</h3>
+                        <p style="color: var(--text-mute); margin-bottom: 15px;">
+                            ✅ Dashboard conectado a Google Sheets publicados como CSV.<br>
+                            Las URLs de conexión están configuradas internamente.
+                        </p>
+                        
+                        <div style="background: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="font-size: 14px; margin-bottom: 8px;">
+                                <strong style="color: var(--neon-green);">📗 Ventas:</strong> Conectado
+                            </div>
+                            <div style="font-size: 14px; margin-bottom: 8px;">
+                                <strong style="color: var(--neon-green);">📄 Detalle de Venta:</strong> Conectado
+                            </div>
+                            <div style="font-size: 14px; margin-bottom: 8px;">
+                                <strong style="color: var(--neon-green);">📘 Servicios:</strong> Conectado
+                            </div>
+                            <div style="font-size: 14px; margin-bottom: 8px;">
+                                <strong style="color: var(--neon-green);">📒 Anticipos:</strong> Conectado
+                            </div>
+                            <div style="font-size: 14px;">
+                                <strong style="color: var(--neon-green);">💰 Egresos (Compras y Gastos):</strong> Conectado
+                            </div>
+                        </div>
+
+                        <button onclick="reconnectSheets()" class="btn-reset">
+                            <i class="fas fa-sync-alt"></i> Recargar Datos
+                        </button>
+                    </div>
+
+                    <div class="config-section">
+                        <h3 style="color: var(--neon-yellow); margin-top: 0;">Periodo de Análisis</h3>
+                        <div class="config-row">
+                            <div class="config-item">
+                                <label>Periodo</label>
+                                <select id="periodo">
+                                    <option value="este-dia">Este Día</option>
+                                    <option value="esta-semana">Esta Semana</option>
+                                    <option value="esta-quincena">Esta Quincena</option>
+                                    <option value="este-mes" selected>Este Mes</option>
+                                    <option value="este-bimestre">Este Bimestre</option>
+                                    <option value="este-trimestre">Este Trimestre</option>
+                                    <option value="este-semestre">Este Semestre</option>
+                                    <option value="este-ano">Este Año</option>
+                                    <option value="ultimos-7">Últimos 7 días</option>
+                                    <option value="ultimos-30">Últimos 30 días</option>
+                                    <option value="ultimos-90">Últimos 90 días</option>
+                                </select>
+                            </div>
+
+                            <div class="config-item">
+                                <label>Agregación</label>
+                                <select id="agregacion">
+                                    <option value="folio">Por Folio</option>
+                                    <option value="dia" selected>Por Día</option>
+                                    <option value="semana">Por Semana</option>
+                                    <option value="mes">Por Mes</option>
+                                    <option value="trimestre">Por Trimestre</option>
+                                </select>
+                            </div>
+
+                            <div class="config-item">
+                                <label>Acumulación</label>
+                                <select id="acumulacion">
+                                    <option value="acumulado" selected>Acumulado</option>
+                                    <option value="no-acumulado">Sin Acumular</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3 style="color: var(--neon-yellow); margin-top: 0;">Métricas a Incluir</h3>
+                        <div class="config-row">
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="metric-total-venta" checked>
+                                💲 Total Venta
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="metric-total-pagos" checked>
+                                💸 Total Pagos
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="metric-costo-venta">
+                                💰 Costo de Venta
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="metric-utilidad-bruta">
+                                📈 Utilidad Bruta
+                            </label>
+                        </div>
+                    </div>
+
+                    <button onclick="applyConfig()" class="btn-reset" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+                        <i class="fas fa-check"></i> Aplicar Configuración
+                    </button>
+                    <button onclick="resetConfig()" class="btn-reset">
+                        <i class="fas fa-undo"></i> Borrar Selección
+                    </button>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: VENTAS -->
+            <section id="section-ventas" class="dashboard-section">
+                <!-- Filtros de Validez -->
+                <div class="glass-card span-12" style="padding: 15px;">
+                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                        <strong style="color: var(--neon-yellow);">🔍 Filtrar por Validez:</strong>
+                        <div id="validez-filters" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <!-- Se llenarán dinámicamente con JavaScript -->
+                        </div>
+                        <button onclick="selectAllValidez()" style="padding: 5px 15px; background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; color: #2ecc71; border-radius: 5px; cursor: pointer;">
+                            ✅ Todas
+                        </button>
+                        <button onclick="deselectAllValidez()" style="padding: 5px 15px; background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #e74c3c; border-radius: 5px; cursor: pointer;">
+                            ❌ Ninguna
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Configuración de Costos -->
+                <div class="glass-card span-12" style="padding: 15px; border: 2px solid var(--neon-yellow);">
+                    <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
+                        <strong style="color: var(--neon-yellow);">⚙️ Configuración de Costos:</strong>
+                        
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <span>💵 Gastos Fijos Mensuales:</span>
+                            <input type="number" id="input-gastos-fijos" value="40000" min="0" step="1000"
+                                style="padding: 5px 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 5px; width: 120px;"
+                                onchange="updateGastosFijos(this.value)">
+                        </label>
+
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" id="check-gastos-fijos" checked onchange="toggleCostoLayer('gastosFijos', this.checked)">
+                                <span>🏢 Gastos Fijos</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" id="check-gastos-admin" checked onchange="toggleCostoLayer('gastosAdmin', this.checked)">
+                                <span>📋 Gastos Admin</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" id="check-costo-ventas" checked onchange="toggleCostoLayer('costoVentas', this.checked)">
+                                <span>💸 Costo Ventas</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" id="check-insumos" checked onchange="toggleCostoLayer('insumos', this.checked)">
+                                <span>🔧 Insumos</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Nota informativa -->
+                    <div style="margin-top: 10px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-left: 3px solid var(--neon-blue); font-size: 0.9em;">
+                        <strong style="color: var(--neon-blue);">ℹ️ Nota:</strong> 
+                        <span style="color: rgba(255,255,255,0.8);">
+                            Las <strong>Extracciones</strong> e <strong>Ingresos</strong> en Egresos están disponibles en los filtros de segmentación, 
+                            pero NO se incluyen en esta gráfica de costos (son movimientos de flujo de caja, no gastos operativos).
+                        </span>
+                    </div>
+                </div>
+
+                <!-- ╔══ GRÁFICA + PROYECCIÓN (lado a lado) ══╗ -->
+                <div class="glass-card" style="grid-column: span 9;">
+                    <div class="collapsible-header" onclick="toggleCollapse('ventas-chart-body', 'arrow-ventas-chart')">
+                        <span>📊 Gráfica de Ventas &amp; Tendencia</span>
+                        <span class="collapse-arrow" id="arrow-ventas-chart">▼</span>
+                    </div>
+                    <div id="ventas-chart-body" class="collapsible-body" style="padding-top:10px;">
+                        <div class="chart-container" style="height:340px;">
+                            <canvas id="chart-ventas-main"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de proyección a fin de mes -->
+                <div class="glass-card" style="grid-column: span 3; border: 1px solid rgba(168,85,247,0.4);">
+                    <div class="card-title" style="color:var(--neon-lila);">🔮 Proyección</div>
+                    <div style="display:flex;flex-direction:column;gap:0;">
+
+                        <div class="proy-row">
+                            <div>
+                                <div class="proy-label">💲 Ventas al cierre</div>
+                                <div class="proy-value" style="color:var(--neon-green);" id="proy-ventas">—</div>
+                            </div>
+                        </div>
+
+                        <div class="proy-row">
+                            <div>
+                                <div class="proy-label">💰 Costos proyectados</div>
+                                <div class="proy-value" style="color:var(--neon-orange);" id="proy-costos">—</div>
+                            </div>
+                        </div>
+
+                        <div class="proy-row">
+                            <div>
+                                <div class="proy-label">💸 Gastos fijos</div>
+                                <div class="proy-value" style="color:#ef4444;" id="proy-fijos">—</div>
+                            </div>
+                        </div>
+
+                        <div class="proy-row" style="margin-top:4px; border-top:1px solid rgba(168,85,247,0.4);">
+                            <div>
+                                <div class="proy-label">💹 Resultado proyectado</div>
+                                <div class="proy-value" style="font-size:1.7em;" id="proy-resultado">—</div>
+                            </div>
+                        </div>
+
+                        <div class="proy-row">
+                            <div>
+                                <div class="proy-label">⚖️ Punto de equilibrio</div>
+                                <div style="font-size:1.1em;font-weight:600;margin-top:2px;" id="proy-equilibrio">—</div>
+                            </div>
+                        </div>
+
+                        <div style="font-size:10px;color:var(--text-mute);margin-top:8px;line-height:1.4;">
+                            Basado en tendencia lineal de ventas y promedio de costos del periodo.
+                            Los gastos fijos se toman del campo configurable.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══ TARJETAS INDICADORES (debajo de gráfica) ══ -->
+                <div class="glass-card span-3">
+                    <div class="card-title">💲 Total Ventas</div>
+                    <div class="stat-value" style="color:var(--neon-green);" id="stat-total-ventas">$0</div>
+                    <div class="stat-label">En el periodo seleccionado</div>
+                </div>
+
+                <div class="glass-card span-3">
+                    <div class="card-title">💰 Costo de Ventas</div>
+                    <div class="stat-value" style="color:var(--neon-orange);" id="stat-costo-ventas">$0</div>
+                    <div class="stat-label">Egresos ligados a folios</div>
+                </div>
+
+                <div class="glass-card span-3">
+                    <div class="card-title">💹 Utilidad Bruta</div>
+                    <div class="stat-value" style="color:var(--neon-blue);" id="stat-margen">$0</div>
+                    <div class="stat-label" id="stat-margen-pct">0%</div>
+                </div>
+
+                <div class="glass-card span-3">
+                    <div class="card-title">💰 Costo Total</div>
+                    <div class="stat-value" style="color:var(--neon-orange);" id="stat-costo-total">$0</div>
+                    <div class="stat-label">Fijos + admin + ventas</div>
+                </div>
+
+                <div class="glass-card span-3">
+                    <div class="card-title">💸 Total Pagos</div>
+                    <div class="stat-value" style="color:var(--neon-lila);" id="stat-total-pagos">$0</div>
+                    <div class="stat-label">Flujo de efectivo recibido</div>
+                </div>
+
+                <div class="glass-card span-3">
+                    <div class="card-title">💸 Extracciones</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-size:1.1em;color:var(--neon-lila);font-weight:bold;" id="stat-extracciones">0 reg.</div>
+                        </div>
+                        <div style="font-size:1.3em;color:var(--neon-lila);" id="stat-extracciones-monto">$0</div>
+                    </div>
+                    <div class="stat-label">Flujo · No incluidas en costos</div>
+                </div>
+
+                <div class="glass-card span-3">
+                    <div class="card-title">💸 Otros Ingresos</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-size:1.1em;color:var(--neon-lila);font-weight:bold;" id="stat-ingresos">0 reg.</div>
+                        </div>
+                        <div style="font-size:1.3em;color:var(--neon-lila);" id="stat-ingresos-monto">$0</div>
+                    </div>
+                    <div class="stat-label">Flujo · No incluidos en costos</div>
+                </div>
+
+                <div class="glass-card span-3">
+                    <div class="card-title">💲 Ticket Promedio</div>
+                    <div class="stat-value" style="color:var(--neon-green);" id="stat-ticket-promedio">$0</div>
+                    <div class="stat-label" id="stat-folios-ventas">0 folios</div>
+                </div>
+
+                <div class="glass-card span-12">
+                    <div class="collapsible-header" id="ventas-table-title"
+                         onclick="toggleCollapse('ventas-table-body-wrap','arrow-ventas-table')"
+                         style="padding:0;">
+                        <span>📋 Detalle de Ventas</span>
+                        <span class="collapse-arrow" id="arrow-ventas-table">▼</span>
+                    </div>
+                    <div id="ventas-table-body-wrap" class="collapsible-body">
+                    <!-- Barra de herramientas de la tabla -->
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:10px 0 8px;">
+                        <span style="font-size:12px; color:var(--text-mute);">Columnas:</span>
+                        <div id="ventas-col-toggles" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+                    </div>
+                    <div style="overflow-x:auto; max-height:60vh; overflow-y:auto;">
+                        <table id="ventas-main-table">
+                            <thead>
+                                <tr id="ventas-thead-row">
+                                    <!-- Columnas generadas por JS -->
+                                </tr>
+                            </thead>
+                            <tbody id="ventas-table-body">
+                                <tr>
+                                    <td colspan="11" style="text-align: center; color: var(--text-mute);">
+                                        Cargando datos...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div><!-- /overflow -->
+                    </div><!-- /collapsible-body -->
+                </div>
+            </section>
+
+            <!-- SECCIÓN: SERVICIOS -->
+            <section id="section-servicios" class="dashboard-section">
+
+                <!-- ── Filtros de Servicios ──────────────────────────────── -->
+                <div class="glass-card span-12" style="padding:12px 16px;">
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <span style="font-size:12px;color:var(--text-mute);">🔍 Filtrar:</span>
+                        <select id="srv-fil-dispositivo" onchange="updateServiciosView()"
+                            style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:6px;padding:4px 8px;font-size:12px;">
+                            <option value="">Todos los Dispositivos</option>
+                        </select>
+                        <select id="srv-fil-marca" onchange="updateServiciosView()"
+                            style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:6px;padding:4px 8px;font-size:12px;">
+                            <option value="">Todas las Marcas</option>
+                        </select>
+                        <select id="srv-fil-tipo-sol" onchange="updateServiciosView()"
+                            style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:6px;padding:4px 8px;font-size:12px;">
+                            <option value="">Todos los Tipos Solicitud</option>
+                        </select>
+                        <select id="srv-fil-resultado" onchange="updateServiciosView()"
+                            style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:6px;padding:4px 8px;font-size:12px;">
+                            <option value="">Todos los Resultados</option>
+                        </select>
+                        <button onclick="resetServiciosFiltros()"
+                            style="padding:4px 12px;border-radius:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:var(--text-mute);cursor:pointer;font-size:11px;">
+                            ✕ Limpiar
+                        </button>
+                        <span id="srv-count" style="font-size:11px;color:var(--text-mute);margin-left:auto;"></span>
+                    </div>
+                </div>
+
+                <!-- ── Tarjetas resumen ───────────────────────────────────── -->
+                <div id="srv-cards" class="stat-grid"></div>
+
+                <!-- ── Fila 1 de gráficas: Top Dispositivos + Resultados ── -->
+                <div class="glass-card span-8" style="min-height:280px;">
+                    <div class="collapsible-header" onclick="toggleCollapse('srv-chart-disp-body','arr-srv-disp')" style="padding:0;">
+                        <span>📊 Top Dispositivos · Volumen y Precio Servicio</span>
+                        <span class="collapse-arrow" id="arr-srv-disp">▼</span>
+                    </div>
+                    <div id="srv-chart-disp-body" class="collapsible-body" style="height:260px;">
+                        <canvas id="chart-srv-dispositivos"></canvas>
+                    </div>
+                </div>
+                <div class="glass-card span-4" style="min-height:280px;">
+                    <div class="collapsible-header" onclick="toggleCollapse('srv-chart-res-body','arr-srv-res')" style="padding:0;">
+                        <span>🔍 Distribución de Resultados</span>
+                        <span class="collapse-arrow" id="arr-srv-res">▼</span>
+                    </div>
+                    <div id="srv-chart-res-body" class="collapsible-body" style="height:260px;">
+                        <canvas id="chart-srv-resultados"></canvas>
+                    </div>
+                </div>
+
+                <!-- ── Fila 2: KPI Diagnóstico + Debido A ────────────────── -->
+                <div class="glass-card span-6" style="min-height:260px;">
+                    <div class="collapsible-header" onclick="toggleCollapse('srv-chart-kpi-body','arr-srv-kpi')" style="padding:0;">
+                        <span>🎯 KPI Diagnóstico por Tipo Solicitud (días prom.)</span>
+                        <span class="collapse-arrow" id="arr-srv-kpi">▼</span>
+                    </div>
+                    <div id="srv-chart-kpi-body" class="collapsible-body" style="height:240px;">
+                        <canvas id="chart-srv-kpi"></canvas>
+                    </div>
+                </div>
+                <div class="glass-card span-6" style="min-height:260px;">
+                    <div class="collapsible-header" onclick="toggleCollapse('srv-chart-debido-body','arr-srv-debido')" style="padding:0;">
+                        <span>📌 Causas de Servicio (Debido A)</span>
+                        <span class="collapse-arrow" id="arr-srv-debido">▼</span>
+                    </div>
+                    <div id="srv-chart-debido-body" class="collapsible-body" style="height:240px;">
+                        <canvas id="chart-srv-debido"></canvas>
+                    </div>
+                </div>
+
+                <!-- ── Tabla de análisis por dimensión ───────────────────── -->
+                <div class="glass-card span-12">
+                    <div class="collapsible-header" onclick="toggleCollapse('srv-dim-body','arr-srv-dim')" style="padding:0;">
+                        <span>🔬 Análisis por Dimensión</span>
+                        <span class="collapse-arrow" id="arr-srv-dim">▼</span>
+                    </div>
+                    <div id="srv-dim-body" class="collapsible-body">
+                        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;" id="srv-dim-tabs">
+                            <button class="srv-dim-btn" onclick="switchSrvDim('dispositivo')" id="btn-srvdim-dispositivo">🖥️ Dispositivo</button>
+                            <button class="srv-dim-btn" onclick="switchSrvDim('marca')" id="btn-srvdim-marca">®️ Marca</button>
+                            <button class="srv-dim-btn" onclick="switchSrvDim('modelo')" id="btn-srvdim-modelo">📱 Modelo</button>
+                            <button class="srv-dim-btn" onclick="switchSrvDim('tipoSol')" id="btn-srvdim-tipoSol">1️⃣ Tipo Solicitud</button>
+                            <button class="srv-dim-btn" onclick="switchSrvDim('tipoSrv')" id="btn-srvdim-tipoSrv">⚙️ Tipo Servicio</button>
+                            <button class="srv-dim-btn" onclick="switchSrvDim('resultado')" id="btn-srvdim-resultado">✅ Resultado</button>
+                            <button class="srv-dim-btn" onclick="switchSrvDim('debidoA')" id="btn-srvdim-debidoA">📌 Debido A</button>
+                        </div>
+                        <div style="overflow-x:auto;max-height:55vh;overflow-y:auto;">
+                            <table id="srv-dim-table" style="width:100%;border-collapse:collapse;font-size:12px;"></table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Tablero de Folios Recepción ────────────────────────── -->
+                <div class="glass-card span-12">
+                    <div class="collapsible-header" onclick="toggleCollapse('srv-folios-body','arr-srv-folios')" style="padding:0;">
+                        <span>🗂️ Tablero de Folios Recepción — Estatus y Vigencia</span>
+                        <span class="collapse-arrow" id="arr-srv-folios">▼</span>
+                    </div>
+                    <div id="srv-folios-body" class="collapsible-body">
+                        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+                            <button class="srv-folio-filter-btn active" onclick="filterFoliosBoard('todos',this)">Todos</button>
+                            <button class="srv-folio-filter-btn" onclick="filterFoliosBoard('abiertos',this)">🔄️ Abiertos</button>
+                            <button class="srv-folio-filter-btn" onclick="filterFoliosBoard('vencidos',this)">⌛ Vencidos</button>
+                            <button class="srv-folio-filter-btn" onclick="filterFoliosBoard('validos',this)">✅ Válidos</button>
+                            <button class="srv-folio-filter-btn" onclick="filterFoliosBoard('invalidos',this)">❌ Inválidos</button>
+                            <span id="folios-board-count" style="font-size:11px;color:var(--text-mute);margin-left:auto;"></span>
+                        </div>
+                        <div style="overflow-x:auto;max-height:60vh;overflow-y:auto;">
+                            <table id="folios-board-table" style="width:100%;border-collapse:collapse;font-size:12px;"></table>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- SECCIÓN: ANTICIPOS -->
+            <section id="section-anticipos" class="dashboard-section">
+                <div class="glass-card span-12">
+                    <div class="card-title">📒 Anticipos - En Desarrollo</div>
+                    <p>Esta sección mostrará el análisis de anticipos.</p>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: COMPRAS -->
+            <section id="section-compras" class="dashboard-section">
+                <div class="glass-card span-12">
+                    <div class="card-title">🛒 Compras - En Desarrollo</div>
+                    <p>Esta sección mostrará el análisis de compras.</p>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: GASTOS -->
+            <section id="section-gastos" class="dashboard-section">
+                <div class="glass-card span-12">
+                    <div class="card-title">📕 Gastos - En Desarrollo</div>
+                    <p>Esta sección mostrará el análisis de gastos.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        /**
+         * Calcula el rango de fechas según el periodo seleccionado
+         * Retorna { start: Date, end: Date }
+         */
+        // ─── calcularRangoFechas: devuelve startStr/endStr en YYYY-MM-DD ──────────
+        // Comparar strings es 100% correcto y no tiene problemas de zona horaria.
+        function calcularRangoFechas(periodo) {
+            const hoy   = new Date();
+            const anio  = hoy.getFullYear();
+            const mes   = hoy.getMonth();   // 0-indexed
+            const dia   = hoy.getDate();
+
+            // Convierte a 'YYYY-MM-DD'
+            const str = (a, m, d) =>
+                `${a}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+            // Hoy como string
+            const hoyStr = str(anio, mes, dia);
+
+            // N días antes de hoy
+            const diasAtras = n => {
+                const d = new Date(anio, mes, dia - n);
+                return str(d.getFullYear(), d.getMonth(), d.getDate());
+            };
+
+            let startStr, endStr = hoyStr;
+
+            switch (periodo) {
+                case 'este-dia':
+                    startStr = hoyStr;
+                    break;
+                case 'esta-semana': {
+                    const dow   = hoy.getDay(); // 0=dom
+                    const lunes = dow === 0 ? 6 : dow - 1;
+                    startStr    = diasAtras(lunes);
+                    break;
+                }
+                case 'esta-quincena':
+                    startStr = str(anio, mes, dia < 16 ? 1 : 16);
+                    break;
+                case 'este-mes':
+                    startStr = str(anio, mes, 1);
+                    break;
+                case 'este-bimestre':
+                    startStr = str(anio, Math.floor(mes / 2) * 2, 1);
+                    break;
+                case 'este-trimestre':
+                    startStr = str(anio, Math.floor(mes / 3) * 3, 1);
+                    break;
+                case 'este-semestre':
+                    startStr = str(anio, mes < 6 ? 0 : 6, 1);
+                    break;
+                case 'este-ano':
+                    startStr = str(anio, 0, 1);
+                    break;
+                case 'ultimos-7':
+                    startStr = diasAtras(6);
+                    break;
+                case 'ultimos-30':
+                    startStr = diasAtras(29);
+                    break;
+                case 'ultimos-90':
+                    startStr = diasAtras(89);
+                    break;
+                default:
+                    startStr = str(anio, mes, 1); // este-mes
+            }
+
+            // También exponer objetos Date para generarFechasEnRango
+            const [sy, sm, sd] = startStr.split('-').map(Number);
+            const [ey, em, ed] = endStr.split('-').map(Number);
+
+            return {
+                startStr,
+                endStr,
+                start: new Date(sy, sm - 1, sd),
+                end:   new Date(ey, em - 1, ed)
+            };
+        }
+
+
+        // ===========================
+        // FUNCIONES DE PARSEO
+        // ===========================
+        
+        /**
+         * Convierte string con formato de moneda a número
+         * '$1,350.00' → 1350
+         * '1350' → 1350
+         * '' → 0
+         * null → 0
+         */
+        function parseMonto(valor) {
+            if (!valor || valor === '' || valor === null || valor === undefined) return 0;
+            if (typeof valor === 'number') return valor;
+            
+            // Quitar $, comas, espacios
+            const limpio = String(valor).replace(/[$,\s]/g, '');
+            const numero = parseFloat(limpio);
+            
+            return isNaN(numero) ? 0 : numero;
+        }
+
+        /**
+         * Parsea fecha en formato M/D/YYYY o D/M/YYYY a objeto Date
+         * '5/4/2023' → Date(2023, 4, 5) asumiendo M/D/Y
+         */
+        function parseFecha(fechaStr) {
+            if (!fechaStr || fechaStr === '' || fechaStr === null) return null;
+            
+            // Si ya es Date, devolverlo
+            if (fechaStr instanceof Date) return fechaStr;
+            
+            // Formato D/M/YYYY (mexicano): '26/04/2024' → día=26, mes=04, año=2024
+            const partes = String(fechaStr).split('/');
+            if (partes.length === 3) {
+                const dia  = parseInt(partes[0]);
+                const mes  = parseInt(partes[1]) - 1; // 0-indexed
+                const anio = parseInt(partes[2]);
+                if (dia >= 1 && dia <= 31 && mes >= 0 && mes <= 11 && anio > 1900) {
+                    return new Date(anio, mes, dia);
+                }
+            }
+            
+            // Intentar parseo estándar como último recurso
+            const fecha = new Date(fechaStr);
+            return isNaN(fecha.getTime()) ? null : fecha;
+        }
+
+        /**
+         * Formatea fecha a string YYYY-MM-DD para agrupación
+         */
+        function formatFecha(fecha) {
+            if (!fecha || !(fecha instanceof Date)) return '';
+            const anio = fecha.getFullYear();
+            const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+            const dia = String(fecha.getDate()).padStart(2, '0');
+            return `${anio}-${mes}-${dia}`;
+        }
+
+        // Estado global de la aplicación
+        const appState = {
+            ventasData: [],
+            detalleVentaData: [],
+            serviciosData: [],
+            anticiposData: [],
+            egresosData: [],
+            comprasData: [],
+            gastosData: [],
+            costoVentasData: [], // Nueva estructura para análisis de costos
+            config: {
+                urls: {
+                    ventas: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRxKT2sTncuJZP4_Bov1Gw1j7ixqNTfW7yGNn8nmAz8gDPauVeBt-8zqCEZWABXI0-BBDEQ4eTvZZkV/pub?gid=681275414&single=true&output=csv',
+                    detalleVenta: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRxKT2sTncuJZP4_Bov1Gw1j7ixqNTfW7yGNn8nmAz8gDPauVeBt-8zqCEZWABXI0-BBDEQ4eTvZZkV/pub?gid=553669204&single=true&output=csv',
+                    servicios: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRxKT2sTncuJZP4_Bov1Gw1j7ixqNTfW7yGNn8nmAz8gDPauVeBt-8zqCEZWABXI0-BBDEQ4eTvZZkV/pub?gid=748915905&single=true&output=csv',
+                    anticipos: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRxKT2sTncuJZP4_Bov1Gw1j7ixqNTfW7yGNn8nmAz8gDPauVeBt-8zqCEZWABXI0-BBDEQ4eTvZZkV/pub?gid=46329458&single=true&output=csv',
+                    egresos: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRxKT2sTncuJZP4_Bov1Gw1j7ixqNTfW7yGNn8nmAz8gDPauVeBt-8zqCEZWABXI0-BBDEQ4eTvZZkV/pub?gid=378367778&single=true&output=csv'
+                },
+                periodo: 'este-mes',
+                agregacion: 'dia',
+                acumulado: true,
+                costos: {
+                    gastosFijos: 40000, // Gastos fijos mensuales configurables
+                    mostrarGastosFijos: true,
+                    mostrarGastosAdmin: true,
+                    mostrarCostoVentas: true,
+                    mostrarInsumos: true,
+                    modoFlujo: false // Si está activo, muestra Extracciones e Ingresos en gráfica separada
+                }
+            },
+            filters: {
+                // Filtros de Ventas
+                ventas: {
+                    validez: [],
+                    estatus: [],
+                    vigencia: [],
+                    dispositivo: [],
+                    marca: [],
+                    modelo: [],
+                    tipoServicio: []
+                },
+                // Filtros de Servicios
+                servicios: {
+                    resultado: [],
+                    debidoA: [],
+                    tipoSolicitud: [],
+                    subtipoSolicitud: [],
+                    detalleServicio: [],
+                    enciende: [],
+                    imagen: [],
+                    humedad: []
+                },
+                // Filtros de Egresos
+                egresos: {
+                    validez: [],
+                    tipo: [],
+                    subtipo: [],
+                    tipoCompra: [],
+                    tipoServicio: [],
+                    comprado: [],
+                    documentado: [],
+                    incluido: []
+                }
+            },
+            charts: {}
+        };
+
+        // Función para cambiar de sección
+        function switchSection(sectionName) {
+            // Ocultar todas las secciones
+            document.querySelectorAll('.dashboard-section').forEach(section => {
+                section.classList.remove('active-section');
+            });
+
+            // Remover clase active de todos los botones
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Mostrar la sección seleccionada
+            const section = document.getElementById(`section-${sectionName}`);
+            if (section) {
+                section.classList.add('active-section');
+            }
+
+            // Activar el botón correspondiente
+            event.target.closest('.nav-btn').classList.add('active');
+            // Activar vistas por sección
+            if (sectionName === 'servicios') {
+                appState.currentSection = 'servicios';
+                setTimeout(updateServiciosView, 50);
+            } else if (sectionName === 'ventas') {
+                appState.currentSection = 'ventas';
+                setTimeout(updateVentasView, 50);
+            } else {
+                appState.currentSection = sectionName;
+            }
+        }
+
+        // Función para cargar datos desde una URL de Google Sheets publicada como CSV
+        async function loadSheetData(url, tabName) {
+            try {
+                console.log(`📥 Cargando ${tabName}...`);
+                
+                // Petición directa (sin proxy, funciona porque estamos en localhost)
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const csvText = await response.text();
+                
+                return new Promise((resolve, reject) => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        dynamicTyping: true,
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            console.log(`✅ ${tabName}: ${results.data.length} registros cargados`);
+                            resolve(results.data);
+                        },
+                        error: (error) => {
+                            reject(error);
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error(`❌ Error cargando ${tabName}:`, error);
+                throw error;
+            }
+        }
+
+        // Función para cargar todos los datos
+        async function loadData() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const loadingError = document.getElementById('loading-error');
+            const connectionStatus = document.getElementById('connection-status');
+
+            try {
+                loadingOverlay.classList.remove('hidden');
+                loadingError.style.display = 'none';
+
+                // Cargar datos de ventas
+                console.log('Cargando datos de Ventas...');
+                appState.ventasData = await loadSheetData(
+                    appState.config.urls.ventas,
+                    'Ventas'
+                );
+
+                // Cargar detalle de venta
+                console.log('Cargando datos de Detalle de Venta...');
+                appState.detalleVentaData = await loadSheetData(
+                    appState.config.urls.detalleVenta,
+                    'Detalle de Venta'
+                );
+
+                // Cargar datos de servicios
+                console.log('Cargando datos de Servicios...');
+                appState.serviciosData = await loadSheetData(
+                    appState.config.urls.servicios,
+                    'Servicios'
+                );
+
+                // Cargar datos de anticipos
+                console.log('Cargando datos de Anticipos...');
+                appState.anticiposData = await loadSheetData(
+                    appState.config.urls.anticipos,
+                    'Anticipos'
+                );
+
+                // Cargar datos de egresos
+                console.log('Cargando datos de Egresos...');
+                appState.egresosData = await loadSheetData(
+                    appState.config.urls.egresos,
+                    'Egresos'
+                );
+
+                // Separar compras y gastos de egresos
+                if (appState.egresosData && appState.egresosData.length > 0) {
+                    appState.comprasData = appState.egresosData.filter(e => e.tipo === 'Compra');
+                    appState.gastosData = appState.egresosData.filter(e => e.tipo === 'Gasto/Pago');
+                    console.log(`✓ Separados ${appState.comprasData.length} compras y ${appState.gastosData.length} gastos`);
+                }
+
+                // Ocultar loading y mostrar éxito
+                loadingOverlay.classList.add('hidden');
+                connectionStatus.classList.remove('error');
+                connectionStatus.innerHTML = '<i class="fas fa-check-circle"></i> ✅ Todos los datos cargados correctamente';
+                connectionStatus.style.display = 'block';
+                setTimeout(() => {
+                    connectionStatus.style.display = 'none';
+                }, 5000);
+
+                // Actualizar timestamp
+                document.getElementById('last-update').textContent = 
+                    `Actualizado: ${new Date().toLocaleString('es-MX')}`;
+
+                // Actualizar todas las vistas
+                updateVentasView();
+
+            } catch (error) {
+                console.error('Error al cargar datos:', error);
+                loadingError.textContent = `❌ Error al conectar con Google Sheets: ${error.message}. 
+                    Verifica que las URLs de publicación sean correctas y que los documentos estén publicados como CSV.`;
+                loadingError.style.display = 'block';
+
+                connectionStatus.classList.add('error');
+                connectionStatus.innerHTML = '<i class="fas fa-times-circle"></i> Error de conexión';
+                connectionStatus.style.display = 'block';
+            }
+        }
+
+        // ========================================
+        // SISTEMA UNIVERSAL DE FILTROS
+        // ========================================
+
+        /**
+         * Crea filtros dinámicos para una columna específica
+         * @param {Array} data - Array de datos
+         * @param {string} columnName - Nombre de la columna a filtrar
+         * @param {string} containerId - ID del elemento donde se insertarán los filtros
+         * @param {string} filterKey - Ruta en appState.filters (ej: 'ventas.validez')
+         * @param {Function} updateCallback - Función a llamar cuando cambien los filtros
+         */
+        function createUniversalFilter(data, columnName, containerId, filterKey, updateCallback) {
+            const container = document.getElementById(containerId);
+            if (!container || !data || data.length === 0) return;
+
+            // Obtener valores únicos de la columna
+            const uniqueValues = [...new Set(data.map(row => row[columnName]))]
+                .filter(v => v !== null && v !== undefined && v !== '')
+                .sort();
+
+            // Solo crear si está vacío
+            if (container.children.length > 0) return;
+
+            // Obtener referencia al filtro en appState
+            const filterPath = filterKey.split('.');
+            let filterObj = appState.filters;
+            filterPath.forEach(key => filterObj = filterObj[key]);
+
+            // Si no hay valores seleccionados, seleccionar todos por defecto
+            if (filterObj.length === 0) {
+                filterPath.reduce((obj, key, idx) => {
+                    if (idx === filterPath.length - 1) {
+                        obj[key] = [...uniqueValues];
+                    }
+                    return obj[key];
+                }, appState.filters);
+            }
+
+            uniqueValues.forEach(valor => {
+                const label = document.createElement('label');
+                label.style.cssText = 'display: flex; align-items: center; gap: 5px; cursor: pointer; padding: 5px 10px; background: rgba(255,255,255,0.05); border-radius: 5px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s;';
+                label.onmouseover = () => label.style.background = 'rgba(255,255,255,0.1)';
+                label.onmouseout = () => label.style.background = 'rgba(255,255,255,0.05)';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = valor;
+                checkbox.checked = true;
+                checkbox.dataset.filterKey = filterKey;
+                checkbox.onchange = () => updateUniversalFilter(filterKey, updateCallback);
+                
+                const text = document.createTextNode(valor);
+                
+                label.appendChild(checkbox);
+                label.appendChild(text);
+                container.appendChild(label);
+            });
+        }
+
+        /**
+         * Actualiza el estado del filtro y ejecuta el callback
+         */
+        function updateUniversalFilter(filterKey, updateCallback) {
+            const checkboxes = document.querySelectorAll(`input[data-filter-key="${filterKey}"]`);
+            
+            // Actualizar appState
+            const filterPath = filterKey.split('.');
+            const selected = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            
+            filterPath.reduce((obj, key, idx) => {
+                if (idx === filterPath.length - 1) {
+                    obj[key] = selected;
+                }
+                return obj[key];
+            }, appState.filters);
+
+            console.log(`🔍 Filtro actualizado [${filterKey}]:`, selected);
+            
+            // Ejecutar callback
+            if (updateCallback) updateCallback();
+        }
+
+        /**
+         * Seleccionar/deseleccionar todos los valores de un filtro
+         */
+        function toggleAllFilters(filterKey, selectAll) {
+            const checkboxes = document.querySelectorAll(`input[data-filter-key="${filterKey}"]`);
+            checkboxes.forEach(cb => cb.checked = selectAll);
+            
+            // Buscar el updateCallback asociado
+            if (checkboxes.length > 0) {
+                checkboxes[0].onchange();
+            }
+        }
+
+        // ========================================
+        // ANÁLISIS DE COSTO DE VENTAS
+        // ========================================
+
+        /**
+         * Conecta Egresos con Ventas para calcular Costo de Ventas
+         */
+        function calcularCostoDeVentas(rangoFechas) {
+            if (!appState.egresosData || !appState.ventasData) {
+                console.warn('⚠️ No hay datos de egresos o ventas para calcular costos');
+                return;
+            }
+
+            // Si no se pasa rango, calcularlo con el periodo configurado
+            if (!rangoFechas) {
+                rangoFechas = calcularRangoFechas(appState.config.periodo || 'este-mes');
+            }
+
+            console.log('🔍 CALCULANDO COSTOS DE VENTAS...');
+            console.log('📊 Total egresos disponibles:', appState.egresosData.length);
+            console.log('📅 Filtro de fechas egresos:', formatFecha(rangoFechas.start), '→', formatFecha(rangoFechas.end));
+
+            const costoVentas = [];
+            const insumosMes = [];
+            const gastosAdmin = [];
+            const extracciones = []; // Flujo de caja (no costo)
+            const otrosIngresos = []; // Flujo de caja (no costo)
+            let egresosExcluidos = 0;
+            let egresosInvalidosFiltro = 0;
+            let egresosForaDeRango = 0;
+
+            appState.egresosData.forEach(egreso => {
+                // Filtrar egresos no válidos o no incluidos
+                const validez = egreso['Validez'] || '';
+                const incluido = egreso['¿incluido?'] || '';
+                
+                // Si no está incluido, saltar
+                if (incluido.toLowerCase() === 'no' || incluido.toLowerCase() === 'false') {
+                    egresosExcluidos++;
+                    return;
+                }
+                
+                // TEMPORAL: Si no hay filtros de validez de egresos, permitir todos los que no sean explícitamente excluidos
+                if (appState.filters.egresos.validez.length > 0 && !appState.filters.egresos.validez.includes(validez)) {
+                    egresosInvalidosFiltro++;
+                    return;
+                }
+
+                const monto = parseMonto(egreso['Monto']);  // ✅ Usar parseMonto
+                const fecha = egreso['Fecha Egreso'];
+
+                // 📅 FILTRO DE FECHA: Solo egresos dentro del periodo (comparación por string)
+                const fechaEgreso = parseFecha(fecha);
+                if (!fechaEgreso) { egresosForaDeRango++; return; }
+                const fechaEgresoKey = formatFecha(fechaEgreso);
+                if (fechaEgresoKey < rangoFechas.startStr || fechaEgresoKey > rangoFechas.endStr) {
+                    egresosForaDeRango++;
+                    return;
+                }
+
+                const tipo = (egreso['tipo'] || egreso['Tipo'] || '').toLowerCase();
+                const anticipo = egreso['Anticipo'];
+                const recepcion = egreso['Recepción'];
+
+                // 🔄 IDENTIFICAR MOVIMIENTOS DE FLUJO (NO SON COSTOS)
+                if (tipo.includes('extracción') || tipo.includes('extraccion')) {
+                    extracciones.push({
+                        ...egreso,
+                        monto,
+                        fecha,
+                        clasificacion: 'extraccion'
+                    });
+                    return; // No continuar con clasificación de costos
+                }
+
+                if (tipo.includes('ingreso') || tipo.includes('otros ingresos')) {
+                    otrosIngresos.push({
+                        ...egreso,
+                        monto,
+                        fecha,
+                        clasificacion: 'otro_ingreso'
+                    });
+                    return; // No continuar con clasificación de costos
+                }
+
+                // Clasificar el egreso SOLO si no es flujo
+                let clasificacion = null;
+                let folioRelacionado = null;
+
+                // 1. Buscar si está ligado a un Folio Anticipo en Ventas
+                if (anticipo) {
+                    const ventaRelacionada = appState.ventasData.find(v => 
+                        v['Folio Anticipo'] === anticipo || v['Anticipo en Recepción'] === anticipo
+                    );
+                    if (ventaRelacionada) {
+                        clasificacion = 'costo_venta';
+                        folioRelacionado = ventaRelacionada['Folio Venta'];
+                    }
+                }
+
+                // 2. Buscar si está ligado a un Folio Recepción en Ventas
+                if (!clasificacion && recepcion) {
+                    const ventaRelacionada = appState.ventasData.find(v => 
+                        v['Folio Recepción Final'] === recepcion
+                    );
+                    if (ventaRelacionada) {
+                        clasificacion = 'costo_venta';
+                        folioRelacionado = ventaRelacionada['Folio Venta'];
+                    }
+                }
+
+                // 3. Si no está ligado, clasificar por tipo
+                if (!clasificacion) {
+                    if (tipo.includes('compra')) {
+                        clasificacion = 'insumo';
+                    } else if (tipo.includes('gasto') || tipo.includes('pago')) {
+                        clasificacion = 'gasto_admin';
+                    }
+                }
+
+                // Agregar a la categoría correspondiente
+                const registroCosto = {
+                    ...egreso,
+                    monto,
+                    fecha,
+                    clasificacion,
+                    folioRelacionado
+                };
+
+                if (clasificacion === 'costo_venta') {
+                    costoVentas.push(registroCosto);
+                } else if (clasificacion === 'insumo') {
+                    insumosMes.push(registroCosto);
+                } else if (clasificacion === 'gasto_admin') {
+                    gastosAdmin.push(registroCosto);
+                }
+            });
+
+            // Guardar en appState
+            appState.costoVentasData = {
+                costoVentas,
+                insumosMes,
+                gastosAdmin,
+                extracciones,  // Separados - NO son costos
+                otrosIngresos, // Separados - NO son costos
+                totales: {
+                    costoVentas: costoVentas.reduce((sum, c) => sum + c.monto, 0),
+                    insumosMes: insumosMes.reduce((sum, c) => sum + c.monto, 0),
+                    gastosAdmin: gastosAdmin.reduce((sum, c) => sum + c.monto, 0),
+                    extracciones: extracciones.reduce((sum, c) => sum + c.monto, 0),
+                    otrosIngresos: otrosIngresos.reduce((sum, c) => sum + c.monto, 0)
+                }
+            };
+
+            console.log('✅ RESULTADO ANÁLISIS DE COSTOS:');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('📊 Egresos totales:', appState.egresosData.length);
+            console.log('❌ Excluidos (¿incluido?=no):', egresosExcluidos);
+            console.log('❌ Excluidos (filtro validez):', egresosInvalidosFiltro);
+            console.log('📅 Excluidos (fuera de rango):', egresosForaDeRango);
+            console.log('✅ Egresos en periodo:', appState.egresosData.length - egresosExcluidos - egresosInvalidosFiltro - egresosForaDeRango);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('💸 Costo de Ventas:', costoVentas.length, 'registros →', formatCurrency(appState.costoVentasData.totales.costoVentas));
+            console.log('🔧 Insumos del Mes:', insumosMes.length, 'registros →', formatCurrency(appState.costoVentasData.totales.insumosMes));
+            console.log('📋 Gastos Admin:', gastosAdmin.length, 'registros →', formatCurrency(appState.costoVentasData.totales.gastosAdmin));
+            console.log('🔄 Extracciones (flujo):', extracciones.length, 'registros →', formatCurrency(appState.costoVentasData.totales.extracciones));
+            console.log('💵 Otros Ingresos (flujo):', otrosIngresos.length, 'registros →', formatCurrency(appState.costoVentasData.totales.otrosIngresos));
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            
+            if (costoVentas.length > 0) {
+                console.log('📝 Ejemplos de Costo de Ventas:', costoVentas.slice(0, 3).map(c => ({
+                    folio: c['Folio Egreso'],
+                    monto: formatCurrency(c.monto),
+                    relacionado: c.folioRelacionado
+                })));
+            }
+
+            return appState.costoVentasData;
+        }
+
+        // Función para actualizar vista de ventas
+        function updateVentasView() {
+            if (!appState.ventasData || appState.ventasData.length === 0) {
+                console.warn('⚠️ No hay datos de ventas para mostrar');
+                return;
+            }
+
+            // 🔍 DEPURACIÓN DETALLADA
+            console.log('═══════════════════════════════════════');
+            console.log('🔍 DEBUG: Análisis de Datos de Ventas');
+            console.log('═══════════════════════════════════════');
+            console.log('📊 Total registros cargados:', appState.ventasData.length);
+            console.log('📊 Primer registro completo:', appState.ventasData[0]);
+            console.log('📊 Columnas disponibles:', Object.keys(appState.ventasData[0]));
+            
+            // Analizar valores de columnas clave
+            const validezValues = [...new Set(appState.ventasData.map(v => v.Validez))].filter(v => v);
+            console.log('📊 Valores únicos en Validez:', validezValues);
+            
+            // Mostrar muestras de valores
+            console.log('📊 Muestra Total Venta:', appState.ventasData.slice(0, 3).map(v => v['Total Venta']));
+            console.log('📊 Muestra Total Pagos:', appState.ventasData.slice(0, 3).map(v => v['Total Pagos']));
+            console.log('📊 Muestra Fecha Ef-Venta:', appState.ventasData.slice(0, 3).map(v => v['Fecha Ef-Venta']));
+            console.log('📊 Muestra Fecha Venta:', appState.ventasData.slice(0, 3).map(v => v['Fecha Venta']));
+
+            // Crear filtros dinámicos si no existen
+            createUniversalFilter(appState.ventasData, 'Validez', 'validez-filters', 'ventas.validez', updateVentasView);
+
+            console.log('📊 Filtros activos - Validez:', appState.filters.ventas.validez);
+
+            // Calcular rango de fechas según periodo configurado
+            const periodo = appState.config.periodo || 'este-mes';
+            const rangoFechas = calcularRangoFechas(periodo);
+            
+            console.log('📅 Periodo seleccionado:', periodo);
+            console.log('📅 Rango de fechas:', {
+                inicio: formatFecha(rangoFechas.start),
+                fin: formatFecha(rangoFechas.end)
+            });
+
+            // Filtrar datos según selección del usuario Y rango de fechas
+            const validVentas = appState.ventasData.filter(v => {
+                // Filtro de validez
+                const incluidoValidez = appState.filters.ventas.validez.includes(v.Validez);
+                if (!incluidoValidez) {
+                    console.log('❌ Registro excluido por Validez:', v.Validez, '- Folio:', v['Folio Venta']);
+                    return false;
+                }
+                
+                // Filtro de fecha — comparar strings 'YYYY-MM-DD' (sin timezone)
+                const fechaRaw = v['Fecha Ef-Venta'] || v['Fecha Venta'];
+                const fechaObj = parseFecha(fechaRaw);
+                if (!fechaObj) return false;   // sin fecha = excluir
+                const fechaKey = formatFecha(fechaObj); // 'YYYY-MM-DD'
+
+                if (fechaKey < rangoFechas.startStr || fechaKey > rangoFechas.endStr) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            console.log('📊 RESULTADO FILTRADO: Total registros:', appState.ventasData.length, '→ Filtrados:', validVentas.length);
+            
+            if (validVentas.length === 0) {
+                console.error('⚠️ NO HAY REGISTROS DESPUÉS DE FILTRAR. Revisa los filtros de Validez.');
+            }
+            
+            console.log('📊 Primeros 3 registros filtrados:', validVentas.slice(0, 3).map(v => v['Folio Venta'] + ' | ' + (v['Fecha Venta'] || v['Fecha Ef-Venta'])));
+            console.log('═══════════════════════════════════════');
+
+            // ← Guardar en appState para debug desde consola (escribe appState.ventasFiltradas)
+            appState.ventasFiltradas = validVentas;
+
+            // Calcular Costo de Ventas (pasando el mismo rango de fechas)
+            calcularCostoDeVentas(rangoFechas);
+
+            // Calcular estadísticas usando parseMonto
+            const totalVentas = validVentas.reduce((sum, v) => sum + parseMonto(v['Total Venta']), 0);
+            const totalPagos = validVentas.reduce((sum, v) => sum + parseMonto(v['Total Pagos']), 0);
+            const numFolios = validVentas.length;
+            const ticketPromedio = numFolios > 0 ? totalVentas / numFolios : 0;
+
+            console.log('💰 Total Ventas calculado:', formatCurrency(totalVentas));
+            console.log('💰 Total Pagos calculado:', formatCurrency(totalPagos));
+            console.log('📊 Número de folios:', numFolios);
+            console.log('🎯 Ticket promedio:', formatCurrency(ticketPromedio));
+
+            // Obtener costos
+            const costos = appState.costoVentasData?.totales || {};
+            const costoTotal = (costos.costoVentas || 0) + (costos.insumosMes || 0) + (costos.gastosAdmin || 0) + appState.config.costos.gastosFijos;
+            const margen = totalVentas - costoTotal;
+            const margenPorcentaje = totalVentas > 0 ? (margen / totalVentas) * 100 : 0;
+
+            // Actualizar stats de ventas
+            document.getElementById('stat-total-ventas').textContent = formatCurrency(totalVentas);
+            document.getElementById('stat-total-pagos').textContent = formatCurrency(totalPagos);
+            document.getElementById('stat-folios-ventas').textContent = numFolios + ' folios';
+            document.getElementById('stat-ticket-promedio').textContent = formatCurrency(ticketPromedio);
+
+            // Actualizar stats de costos
+            document.getElementById('stat-costo-ventas').textContent = formatCurrency(costos.costoVentas || 0);
+            document.getElementById('stat-costo-total').textContent = formatCurrency(costoTotal);
+            document.getElementById('stat-margen').textContent = formatCurrency(margen);
+            document.getElementById('stat-margen-pct').textContent = margenPorcentaje.toFixed(1) + '%';
+
+            // Actualizar stats de flujo (no son costos)
+            const numExtracciones = appState.costoVentasData?.extracciones?.length || 0;
+            const numIngresos = appState.costoVentasData?.otrosIngresos?.length || 0;
+            const montoExtracciones = costos.extracciones || 0;
+            const montoIngresos = costos.otrosIngresos || 0;
+
+            document.getElementById('stat-extracciones').textContent = numExtracciones + ' registro' + (numExtracciones !== 1 ? 's' : '');
+            document.getElementById('stat-extracciones-monto').textContent = formatCurrency(montoExtracciones);
+            document.getElementById('stat-ingresos').textContent = numIngresos + ' registro' + (numIngresos !== 1 ? 's' : '');
+            document.getElementById('stat-ingresos-monto').textContent = formatCurrency(montoIngresos);
+
+            // Actualizar tabla
+            updateVentasTable(validVentas);
+
+            // Actualizar gráfica — pasa rango para construir eje X completo
+            updateVentasChartWithCosts(validVentas, rangoFechas);
+        }
+
+        // ========================================
+        // FUNCIONES DE CONTROL
+        // ========================================
+
+        // Funciones helper para botones de Todas/Ninguna
+        function selectAllValidez() {
+            toggleAllFilters('ventas.validez', true);
+        }
+
+        function deselectAllValidez() {
+            toggleAllFilters('ventas.validez', false);
+        }
+
+        // Control de configuración de costos
+        function updateGastosFijos(valor) {
+            appState.config.costos.gastosFijos = parseFloat(valor) || 0;
+            console.log('💵 Gastos fijos actualizados:', appState.config.costos.gastosFijos);
+            updateVentasView();
+        }
+
+        function toggleCostoLayer(layer, enabled) {
+            const layerMap = {
+                'gastosFijos': 'mostrarGastosFijos',
+                'gastosAdmin': 'mostrarGastosAdmin',
+                'costoVentas': 'mostrarCostoVentas',
+                'insumos': 'mostrarInsumos'
+            };
+            
+            const configKey = layerMap[layer];
+            if (configKey) {
+                appState.config.costos[configKey] = enabled;
+                console.log(`📊 Capa ${layer}:`, enabled ? 'activada' : 'desactivada');
+                updateVentasView();
+            }
+        }
+
+
+        // ═══════════════════════════════════════════════════════════════
+        // TABLA DE VENTAS — con ordenamiento, columnas visibles y subtablas
+        // ═══════════════════════════════════════════════════════════════
+
+        // Estado de la tabla (sort + columnas visibles + filas expandidas)
+        const tblState = {
+            sortCol: 'fecha',
+            sortDir: 'desc',
+            expanded: new Set(),
+            cols: {
+                folio:      { label: '📗 Folio',           visible: true,  sort: true  },
+                fecha:      { label: '📅 Fecha',           visible: true,  sort: true  },
+                modelo:     { label: '📱 Modelo',          visible: true,  sort: true  },
+                tipo:       { label: '⚙️ Tipo Servicio',   visible: true,  sort: true  },
+                recepcion:  { label: '📘 Folio Recep.',    visible: true,  sort: false },
+                anticipo:   { label: '📒 Folio Anticipo',  visible: true,  sort: false },
+                antMonto:   { label: '📒 Anticipo Recep.', visible: false, sort: false },
+                totalVenta: { label: '💰 Total Venta',     visible: true,  sort: true  },
+                totalPagos: { label: '💳 Total Pagos',     visible: true,  sort: true  },
+                validez:    { label: '✅ Validez',         visible: true,  sort: true  },
+                costoVenta: { label: '💰 Costo Venta',      visible: true,  sort: true  },
+                utBruta:    { label: '💹 Ut. Bruta',        visible: true,  sort: true  },
+            }
+        };
+
+        // ── Construir encabezados con sort ────────────────────────────────
+        function buildVentasTableHeader() {
+            const tr = document.getElementById('ventas-thead-row');
+            if (!tr) return;
+            tr.innerHTML = '';
+
+            // Columna expandir (sin título)
+            const thExp = document.createElement('th');
+            thExp.style.cssText = 'width:32px; text-align:center; cursor:default;';
+            thExp.textContent = '';
+            tr.appendChild(thExp);
+
+            Object.entries(tblState.cols).forEach(([key, col]) => {
+                if (!col.visible) return;
+                const th = document.createElement('th');
+                th.style.cursor = col.sort ? 'pointer' : 'default';
+                th.style.userSelect = 'none';
+                th.style.whiteSpace = 'nowrap';
+
+                let arrow = '';
+                if (col.sort && tblState.sortCol === key) {
+                    arrow = tblState.sortDir === 'asc' ? ' ▲' : ' ▼';
+                } else if (col.sort) {
+                    arrow = ' ⇅';
+                }
+                th.innerHTML = `${col.label}<span style="opacity:0.5;font-size:10px;">${arrow}</span>`;
+
+                if (col.sort) {
+                    th.onclick = () => {
+                        if (tblState.sortCol === key) {
+                            tblState.sortDir = tblState.sortDir === 'asc' ? 'desc' : 'asc';
+                        } else {
+                            tblState.sortCol = key;
+                            tblState.sortDir = key === 'fecha' || key === 'totalVenta' ? 'desc' : 'asc';
+                        }
+                        renderVentasTableRows(tblState._lastData);
+                    };
+                }
+                tr.appendChild(th);
+            });
+        }
+
+        // ── Construir toggles de columnas visibles ────────────────────────
+        function buildColToggles() {
+            const container = document.getElementById('ventas-col-toggles');
+            if (!container || container.children.length > 0) return;
+
+            Object.entries(tblState.cols).forEach(([key, col]) => {
+                const btn = document.createElement('button');
+                btn.textContent = col.label;
+                btn.style.cssText = `
+                    font-size: 11px; padding: 2px 8px; border-radius: 12px; cursor: pointer;
+                    border: 1px solid rgba(255,255,255,0.2);
+                    background: ${col.visible ? 'rgba(0,210,255,0.2)' : 'rgba(255,255,255,0.05)'};
+                    color: ${col.visible ? 'var(--neon-blue)' : 'var(--text-mute)'};
+                    transition: all 0.2s;
+                `;
+                btn.onclick = () => {
+                    col.visible = !col.visible;
+                    btn.style.background = col.visible ? 'rgba(0,210,255,0.2)' : 'rgba(255,255,255,0.05)';
+                    btn.style.color = col.visible ? 'var(--neon-blue)' : 'var(--text-mute)';
+                    renderVentasTableRows(tblState._lastData);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        // ── Valor de celda para sort ──────────────────────────────────────
+        function getCellVal(row, key) {
+            switch (key) {
+                case 'folio':      return row['Folio Venta'] || '';
+                case 'fecha':      return formatFecha(parseFecha(row['Fecha Ef-Venta'] || row['Fecha Venta'])) || '';
+                case 'modelo':     return row['Modelo_Ver'] || '';
+                case 'tipo':       return row['TipoServicio'] || '';
+                case 'totalVenta': return parseMonto(row['Total Venta']);
+                case 'totalPagos': return parseMonto(row['Total Pagos']);
+                case 'validez':    return row['Validez'] || '';
+                case 'costoVenta': {
+                    const f = row['Folio Venta'];
+                    return (appState.costoVentasData?.costoVentas || [])
+                        .filter(c => c.folioRelacionado === f)
+                        .reduce((s, c) => s + c.monto, 0);
+                }
+                case 'utBruta': {
+                    const f = row['Folio Venta'];
+                    const cv = (appState.costoVentasData?.costoVentas || [])
+                        .filter(c => c.folioRelacionado === f)
+                        .reduce((s, c) => s + c.monto, 0);
+                    return parseMonto(row['Total Venta']) - cv;
+                }
+                default:           return '';
+            }
+        }
+
+        // ── Ordenar datos ─────────────────────────────────────────────────
+        function sortVentasData(data) {
+            return [...data].sort((a, b) => {
+                let va = getCellVal(a, tblState.sortCol);
+                let vb = getCellVal(b, tblState.sortCol);
+                let cmp;
+                if (typeof va === 'number') {
+                    cmp = va - vb;
+                } else {
+                    cmp = String(va).localeCompare(String(vb), 'es');
+                }
+                return tblState.sortDir === 'asc' ? cmp : -cmp;
+            });
+        }
+
+        // ── Subtabla de una fila expandida ─────────────────────────────────────
+        function buildSubtable(venta) {
+            const folio    = venta['Folio Venta'] || '';
+            const folioRec = venta['Folio Recepción Final'] || venta['Folio Recepcion Final'] || '';
+            // Anticipo: buscar en múltiples campos posibles
+            const folioAnt = String(
+                venta['Folio Anticipo'] || venta['Anticipo en Recepción'] ||
+                venta['Folio Anticipo-R'] || venta['Anticipo'] || venta['No. Anticipo'] || ''
+            ).trim();
+            const antMonto = parseMonto(venta['Anticipo Recepción'] || venta['Monto Ant Recep'] || venta['Monto Anticipo'] || 0);
+
+            // ── matchAny: busca val en varios campos del objeto obj ─────────
+            function matchAny(obj, fields, val) {
+                if (!val || val === '') return false;
+                const v = String(val).trim().toUpperCase();
+                return fields.some(f => {
+                    const ov = obj[f];
+                    return ov !== undefined && ov !== null && String(ov).trim().toUpperCase() === v;
+                });
+            }
+
+            // ── Filtros de datos ────────────────────────────────────────────
+            const servicios = (appState.serviciosData || []).filter(s =>
+                (folioRec && matchAny(s, ['Folio Recepción','Folio Recepcion','Folio','No. Recepción','No. Recepcion'], folioRec)) ||
+                matchAny(s, ['Folio Venta','FolioVenta','Venta'], folio)
+            );
+
+            const anticipos = (appState.anticiposData || []).filter(a =>
+                (folioAnt && matchAny(a, ['Folio Anticipo','Folio','No. Anticipo','Anticipo','# Anticipo'], folioAnt)) ||
+                (folioRec && matchAny(a, ['Folio Recepción','Folio Recepcion','Recepción'], folioRec)) ||
+                matchAny(a, ['Folio Venta','Venta'], folio)
+            );
+
+            const detalles = (appState.detalleVentaData || []).filter(d =>
+                matchAny(d, ['Folio Venta','Folio##Venta','Venta'], folio)
+            );
+
+            // Egresos: buscar por anticipo, recepción, o venta (ampliado)
+            const egresos = (appState.egresosData || []).filter(e =>
+                (folioAnt && matchAny(e, [
+                    'Anticipo','Folio Anticipo','No. Anticipo','# Anticipo',
+                    'Referencia','Ref. Anticipo','Folio de Anticipo',
+                    'Folio Anticipo-R','No Anticipo','Anticipo Ref'
+                ], folioAnt)) ||
+                (folioRec && matchAny(e, [
+                    'Recepción','Recepcion','Folio Recepción','Folio Recepcion',
+                    'No. Recepción','Folio de Recepción','Ref. Recepción'
+                ], folioRec)) ||
+                matchAny(e, ['Folio Venta','Venta','Folio de Venta'], folio)
+            );
+
+            // ── DEBUG: Si no hay egresos, rastrear qué campos tiene el primer egreso ──
+            let debugEgresos = '';
+            if (folioAnt && egresos.length === 0 && (appState.egresosData||[]).length > 0) {
+                const sample = appState.egresosData[0];
+                const keys = Object.keys(sample).slice(0, 12).join(', ');
+                debugEgresos = `<div style="font-size:10px;color:#f97316;margin-bottom:6px;background:rgba(249,115,22,0.1);padding:4px 8px;border-radius:4px;">
+                    🔍 Debug: buscando anticipo <b>${folioAnt}</b> en egresos. Campos disponibles: <em>${keys}</em>
+                    <br>Muestra: ${Object.entries(sample).slice(0,5).map(([k,v])=>`${k}=<b>${v}</b>`).join(', ')}
+                </div>`;
+            }
+
+            // ── Recepción: columnas clave según especificación ──────────────
+            const srcRec = servicios.length ? servicios : [venta];
+            const htmlRecepcion = `
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.25);">
+                        <th style="padding:5px 8px;text-align:left;">📘 Folio Recepción</th>
+                        <th style="padding:5px 8px;text-align:left;">📅 Recepción</th>
+                        <th style="padding:5px 8px;text-align:left;">⚙️ Tipo Servicio</th>
+                        <th style="padding:5px 8px;text-align:left;">Resultado</th>
+                        <th style="padding:5px 8px;text-align:left;">Debido A</th>
+                        <th style="padding:5px 8px;text-align:center;">🎯 KPI Diag 🩺</th>
+                    </tr></thead>
+                    <tbody>${srcRec.map(s => {
+                        const kpi = s['Días Diagnóstico']||s['Días Diag']||s['Dias Diagnostico']||s['KPI Diagnóstico']||'—';
+                        const kpiNum = parseFloat(kpi);
+                        const kpiColor = isNaN(kpiNum)?'inherit': kpiNum<=1?'var(--neon-green)': kpiNum<=2?'var(--neon-orange)':'#ef4444';
+                        return `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                            <td style="padding:4px 8px;"><span class="badge-folio badge-recep">📘${s['Folio Recepción']||s['Folio Recepcion']||folioRec||'—'}</span></td>
+                            <td style="padding:4px 8px;color:var(--text-mute);">${s['Fecha ef-Recepción']||s['Fecha Ef-Recepción']||s['Fecha Recepción']||s['Fecha']||'—'}</td>
+                            <td style="padding:4px 8px;">${s['Tipo Servicio']||s['Tipo de Servicio']||s['Tipo de Solicitud']||venta['Tipo de Solicitud']||'—'}</td>
+                            <td style="padding:4px 8px;">${s['Resultado']||s['Resultado del Servicio']||venta['Resultado del Servicio']||'—'}</td>
+                            <td style="padding:4px 8px;font-size:11px;">${s['Debido A']||s['Debido a']||venta['Debido a']||'—'}</td>
+                            <td style="padding:4px 8px;text-align:center;font-weight:bold;color:${kpiColor};">${kpi}</td>
+                        </tr>`;
+                    }).join('')}</tbody>
+                </table>`;
+
+            // ── Anticipos: columnas clave según especificación ──────────────
+            const htmlAnticipos = anticipos.length ? `
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.25);">
+                        <th style="padding:5px 8px;text-align:left;">📒 Folio Anticipo</th>
+                        <th style="padding:5px 8px;text-align:left;">📅 Anticipo</th>
+                        <th style="padding:5px 8px;text-align:left;">🧩 Pieza</th>
+                        <th style="padding:5px 8px;text-align:left;">Variante 1</th>
+                        <th style="padding:5px 8px;text-align:left;">🏷️ SKU Refacción</th>
+                        <th style="padding:5px 8px;text-align:center;">🎯 KPI Entrega</th>
+                    </tr></thead>
+                    <tbody>${anticipos.map(a => {
+                        const kpi = a['ArriboR/Hoy a Meta']||a['Arribo a Meta']||a['KPI Entrega']||a['KPI']||'—';
+                        const kpiNum = parseFloat(kpi);
+                        const kpiColor = isNaN(kpiNum)?'inherit': kpiNum>=1?'var(--neon-green)': kpiNum>=0?'var(--neon-orange)':'#ef4444';
+                        return `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                            <td style="padding:4px 8px;"><span class="badge-folio badge-anticipo">📒${a['Folio Anticipo']||a['Folio']||a['# Anticipo']||'—'}</span></td>
+                            <td style="padding:4px 8px;color:var(--text-mute);">${a['Fecha ef-Anticipo']||a['Fecha Ef-Anticipo']||a['Fecha Anticipo']||a['Fecha']||'—'}</td>
+                            <td style="padding:4px 8px;">${a['Pieza']||'—'}</td>
+                            <td style="padding:4px 8px;font-size:11px;">${a['Variante 1']||'—'}</td>
+                            <td style="padding:4px 8px;font-size:11px;"><code style="color:var(--neon-lila);">${a['SKU_Refacción']||a['SKU Refacción']||a['SKU']||'—'}</code></td>
+                            <td style="padding:4px 8px;text-align:center;font-weight:bold;color:${kpiColor};">${kpi}</td>
+                        </tr>`;
+                    }).join('')}</tbody>
+                </table>` :
+                `<div style="color:var(--text-mute);font-size:12px;padding:8px;">
+                    Sin anticipos vinculados a <b>${folioAnt||folioRec||folio}</b>
+                </div>`;
+
+            // ── Egresos: columnas clave según especificación ────────────────
+            const htmlEgresos = `
+                ${debugEgresos}
+                ${egresos.length ? `
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.25);">
+                        <th style="padding:5px 8px;text-align:left;">📕 Folio Egreso</th>
+                        <th style="padding:5px 8px;text-align:left;">🛒 Orden</th>
+                        <th style="padding:5px 8px;text-align:left;">📚 Folio Compra</th>
+                        <th style="padding:5px 8px;text-align:left;">🧩 Concepto</th>
+                        <th style="padding:5px 8px;text-align:left;">🏷️ SKU</th>
+                        <th style="padding:5px 8px;text-align:left;">🏭 Proveedor</th>
+                        <th style="padding:5px 8px;text-align:right;">💰 Costo</th>
+                        <th style="padding:5px 8px;text-align:center;">🛒</th>
+                        <th style="padding:5px 8px;text-align:center;">📜</th>
+                        <th style="padding:5px 8px;text-align:left;">🚚 Servicio</th>
+                        <th style="padding:5px 8px;text-align:right;">💲 P.Venta</th>
+                        <th style="padding:5px 8px;text-align:right;">💹 Margen</th>
+                    </tr></thead>
+                    <tbody>${egresos.map(e => {
+                        const monto = parseMonto(e['Monto']||e['Métrica Monto']||e['Costo']||0);
+                        const pventa = parseMonto(e['Precio Venta']||e['Precio de Venta']||0);
+                        const margen = pventa - monto;
+                        const mCol = margen>=0?'var(--neon-blue)':'#ef4444';
+                        const comprado = e['¿Comprado?']||e['Comprado']||'—';
+                        const docum   = e['¿Documentado?']||e['Documentado']||'—';
+                        const cmpOk = ['si','sí','yes','✓','✅'].includes(String(comprado).toLowerCase().trim());
+                        const docOk = ['si','sí','yes','✓','✅'].includes(String(docum).toLowerCase().trim());
+                        return `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                            <td style="padding:4px 8px;"><span class="badge-folio" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">📕${e['Folio Egreso']||e['Folio']||'—'}</span></td>
+                            <td style="padding:4px 8px;font-size:11px;">${e['Con Orden']||e['No. Orden']||e['Orden']||'—'}</td>
+                            <td style="padding:4px 8px;font-size:11px;">${e['Folio para Compra']||e['Folio Compra']||e['Folio de Compra']||'—'}</td>
+                            <td style="padding:4px 8px;">${e['Concepto']||e['Descripción']||e['Descripcion']||'—'}</td>
+                            <td style="padding:4px 8px;font-size:11px;"><code style="color:var(--neon-lila);">${e['SkuRefacción']||e['SKU Refacción']||e['SKU_Refacción']||e['SKU']||'—'}</code></td>
+                            <td style="padding:4px 8px;font-size:11px;">${e['Proveedor']||'—'}</td>
+                            <td style="padding:4px 8px;text-align:right;color:var(--neon-orange);">${formatCurrency(monto)}</td>
+                            <td style="padding:4px 8px;text-align:center;font-size:14px;">${cmpOk?'✅':'❌'}</td>
+                            <td style="padding:4px 8px;text-align:center;font-size:14px;">${docOk?'✅':'❌'}</td>
+                            <td style="padding:4px 8px;font-size:11px;">${e['Tipo Servicio']||e['Tipo de Servicio']||e['Servicio Logístico']||'—'}</td>
+                            <td style="padding:4px 8px;text-align:right;color:var(--neon-green);">${pventa>0?formatCurrency(pventa):'—'}</td>
+                            <td style="padding:4px 8px;text-align:right;font-weight:bold;color:${mCol};">${pventa>0?formatCurrency(margen):'—'}</td>
+                        </tr>`;
+                    }).join('')}</tbody>
+                </table>` :
+                `<div style="color:var(--text-mute);font-size:12px;padding:8px;">
+                    Sin egresos para: Anticipo <b>${folioAnt||'—'}</b> / Recepción <b>${folioRec||'—'}</b>
+                </div>`}`;
+
+            // ── Detalle Venta ───────────────────────────────────────────────
+            const htmlDetalle = detalles.length ? `
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.25);">
+                        <th style="padding:5px 8px;text-align:left;">🔧 Servicio</th>
+                        <th style="padding:5px 8px;text-align:right;">💲 Precio</th>
+                    </tr></thead>
+                    <tbody>${detalles.map(d=>`
+                    <tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:4px 8px;">${d['Servicio']||d['Concepto']||'—'}</td>
+                        <td style="padding:4px 8px;text-align:right;color:var(--neon-green);">${formatCurrency(parseMonto(d['Precio']||d['Monto']||0))}</td>
+                    </tr>`).join('')}</tbody>
+                </table>` :
+                `<div style="color:var(--text-mute);font-size:12px;padding:8px;">Sin detalle de venta vinculado</div>`;
+
+            const tabId = 'sub_'+folio.replace(/[^a-zA-Z0-9]/g,'_');
+            const tabs = [
+                {id:'recepcion', icon:'📘', label:'Recepción', count:srcRec.length,  html:htmlRecepcion},
+                {id:'anticipos', icon:'📒', label:'Anticipos', count:anticipos.length,html:htmlAnticipos},
+                {id:'egresos',   icon:'💸', label:'Egresos',   count:egresos.length,  html:htmlEgresos},
+                {id:'detalle',   icon:'🔍', label:'Detalle',   count:detalles.length, html:htmlDetalle},
+            ];
+
+            // Cadena de relación + mini-diagnóstico de anticipo
+            const diagFields = [];
+            ['Folio Anticipo','Anticipo en Recepción','Folio Anticipo-R','Anticipo','No. Anticipo'].forEach(f => {
+                if (venta[f] !== undefined && String(venta[f]).trim() !== '')
+                    diagFields.push(`<span style="color:#fb923c;">${f}</span>=<b>${venta[f]}</b>`);
+            });
+
+            return `
+            <div style="padding:10px 14px 14px;background:rgba(0,0,0,0.4);border:2px solid rgba(0,210,255,0.35);border-radius:0 0 10px 10px;margin:0 4px 4px 4px;box-shadow:0 4px 14px rgba(0,210,255,0.10);">
+                <div style="font-size:11px;color:var(--text-mute);margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    🔗 <span class="badge-folio badge-venta">📗${folio}</span>
+                    <span style="opacity:0.4;">→</span>
+                    <span class="badge-folio badge-recep">📘${folioRec||'—'}</span>
+                    <span style="opacity:0.4;">→</span>
+                    <span class="badge-folio badge-anticipo">📒${folioAnt||'—'}</span>
+                    ${diagFields.length?`<span style="font-size:10px;opacity:0.6;margin-left:6px;">(${diagFields.join(' | ')})</span>`:''}
+                </div>
+                <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+                    ${tabs.map((t,i)=>`
+                    <button onclick="showSubTab('${tabId}','${t.id}')" id="${tabId}_btn_${t.id}"
+                        style="font-size:11px;padding:3px 10px;border-radius:10px;cursor:pointer;
+                               background:${i===0?'rgba(0,210,255,0.25)':'rgba(255,255,255,0.05)'};
+                               border:${i===0?'1px solid rgba(0,210,255,0.5)':'1px solid rgba(255,255,255,0.1)'};
+                               color:${i===0?'var(--neon-blue)':'var(--text-mute)'};">
+                        ${t.icon} ${t.label}${t.count?` (${t.count})`:''}
+                    </button>`).join('')}
+                </div>
+                ${tabs.map((t,i)=>`<div id="${tabId}_${t.id}" ${i===0?'':'style="display:none;"'}>${t.html}</div>`).join('')}
+            </div>`;
+        }
+
+
+        function showSubTab(tabId, tab) {
+            ['recepcion', 'anticipos', 'egresos', 'detalle'].forEach(t => {
+                const el  = document.getElementById(`${tabId}_${t}`);
+                const btn = document.getElementById(`${tabId}_btn_${t}`);
+                if (!el || !btn) return;
+                const active = t === tab;
+                el.style.display     = active ? '' : 'none';
+                btn.style.background = active ? 'rgba(0,210,255,0.25)' : 'rgba(255,255,255,0.05)';
+                btn.style.border     = active ? '1px solid rgba(0,210,255,0.5)' : '1px solid rgba(255,255,255,0.1)';
+                btn.style.color      = active ? 'var(--neon-blue)' : 'var(--text-mute)';
+            });
+        }
+
+        // ── Renderizar filas (se llama también al re-ordenar) ─────────────
+        function renderVentasTableRows(data) {
+            if (!data) return;
+            tblState._lastData = data;
+
+            buildVentasTableHeader();
+            buildColToggles();
+
+            const visibleCols = Object.keys(tblState.cols).filter(k => tblState.cols[k].visible);
+            const colCount     = 1 + visibleCols.length; // +1 por columna de expand
+
+            const tbody = document.getElementById('ventas-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            // ── Fila de periodo ──────────────────────────────────────────
+            const rangoActivo = calcularRangoFechas(appState.config.periodo || 'este-mes');
+            const infoRow = document.createElement('tr');
+            infoRow.style.cssText = 'background: rgba(0,210,255,0.08);';
+            infoRow.innerHTML = `
+                <td colspan="${colCount}" style="padding:5px 12px; font-size:11px; color:var(--neon-blue); text-align:center;">
+                    📅 ${rangoActivo.startStr} → ${rangoActivo.endStr}
+                    &nbsp;|&nbsp; <strong>${data.length}</strong> registros
+                    &nbsp;|&nbsp; ${tblState.expanded.size} expandidos
+                </td>`;
+            tbody.appendChild(infoRow);
+
+            if (data.length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `<td colspan="${colCount}" style="text-align:center;color:var(--text-mute);padding:20px;">
+                    Sin registros para el periodo</td>`;
+                tbody.appendChild(emptyRow);
+                return;
+            }
+
+            const sorted = sortVentasData(data);
+
+            sorted.forEach(row => {
+                const folio    = row['Folio Venta'] || 'N/A';
+                const isOpen   = tblState.expanded.has(folio);
+                const monto    = parseMonto(row['Total Venta']);
+                const pagos    = parseMonto(row['Total Pagos']);
+                const validez  = row['Validez'] || '—';
+                const fecha    = row['Fecha Ef-Venta'] || row['Fecha Venta'] || '—';
+                const colorV   = validez === 'Válido' ? 'var(--neon-green)' :
+                                 validez === 'Cancelado' ? '#e74c3c' : '#f39c12';
+
+                // ── Función que devuelve el TD para cada columna ─────────
+                const cellMap = {
+                    folio:      `<td><span class="badge-folio badge-venta" style="cursor:pointer;"
+                                    onclick="toggleExpandRow('${folio.replace(/'/g,"\\'")}', this)"
+                                    title="Click para ver detalle">${folio}</span></td>`,
+                    fecha:      `<td>${fecha}</td>`,
+                    modelo:     `<td>${row['Modelo_Ver'] || '—'}</td>`,
+                    tipo:       `<td>${row['TipoServicio'] || '—'}</td>`,
+                    recepcion:  (() => { const v = row['Folio Recepción Final']; return `<td>${v ? `<span class="badge-folio badge-recep">📘${v}</span>` : '—'}</td>`; })(),
+                    anticipo:   (() => { const v = row['Folio Anticipo']; return `<td>${v ? `<span class="badge-folio badge-anticipo">📒${v}</span>` : '—'}</td>`; })(),
+                    antMonto:   `<td style="text-align:right;color:var(--neon-orange);">${formatCurrency(parseMonto(row['Anticipo Recepción'] || row['Monto Ant Recep']))}</td>`,
+                    totalVenta: `<td style="text-align:right;color:var(--neon-green);font-weight:600;">💲${formatCurrency(monto)}</td>`,
+                    totalPagos: `<td style="text-align:right;color:var(--neon-lila);">💸${formatCurrency(pagos)}</td>`,
+                    validez:    `<td style="color:${colorV};">${validez}</td>`,
+                    costoVenta: (() => { const f=row['Folio Venta']; const cv=(appState.costoVentasData?.costoVentas||[]).filter(c=>c.folioRelacionado===f).reduce((s,c)=>s+c.monto,0); return `<td style="text-align:right;color:var(--neon-orange);">💰${formatCurrency(cv)}</td>`; })(),
+                    utBruta:    (() => { const f=row['Folio Venta']; const cv=(appState.costoVentasData?.costoVentas||[]).filter(c=>c.folioRelacionado===f).reduce((s,c)=>s+c.monto,0); const ub=parseMonto(row['Total Venta'])-cv; return `<td style="text-align:right;color:${ub>=0?'var(--neon-blue)':'#ef4444'};">💹${formatCurrency(ub)}</td>`; })(),
+                };
+
+                // ── Fila principal ───────────────────────────────────────
+                const tr = document.createElement('tr');
+                tr.id = 'row_' + folio.replace(/[^a-zA-Z0-9]/g,'_');
+                tr.style.cssText = isOpen ? 'background:rgba(0,210,255,0.05);' : '';
+                tr.innerHTML = `
+                    <td style="text-align:center; width:32px;">
+                        <button onclick="toggleExpandRow('${folio.replace(/'/g,"\\'")}', this)"
+                            style="background:none;border:none;cursor:pointer;color:var(--text-mute);font-size:14px;padding:2px 4px;">
+                            ${isOpen ? '▼' : '▶'}
+                        </button>
+                    </td>
+                    ${visibleCols.map(k => cellMap[k] || '<td>—</td>').join('')}
+                `;
+                tbody.appendChild(tr);
+
+                // ── Fila expandida ───────────────────────────────────────
+                if (isOpen) {
+                    const trSub = document.createElement('tr');
+                    trSub.id = 'subrow_' + folio.replace(/[^a-zA-Z0-9]/g,'_');
+                    trSub.innerHTML = `<td colspan="${colCount}" style="padding:0; border-top:1px solid rgba(0,210,255,0.2);">
+                        ${buildSubtable(row)}
+                    </td>`;
+                    tbody.appendChild(trSub);
+                }
+            });
+
+            // Actualizar título
+            // Actualizar solo el span de info (no tocar el collapsible header)
+            const titleEl = document.getElementById('ventas-table-title');
+            if (titleEl) {
+                let spanInfo = titleEl.querySelector('.tbl-info-span');
+                if (!spanInfo) {
+                    spanInfo = document.createElement('span');
+                    spanInfo.className = 'tbl-info-span';
+                    spanInfo.style.cssText = 'font-size:11px;font-weight:normal;color:var(--neon-blue);margin-left:8px;';
+                    titleEl.querySelector('span:first-child').after(spanInfo);
+                }
+                spanInfo.textContent = `${data.length} reg | ${rangoActivo.startStr} → ${rangoActivo.endStr}`;
+            }
+        }
+
+        // ── Toggle expandir fila ──────────────────────────────────────────
+        function toggleExpandRow(folio, el) {
+            if (tblState.expanded.has(folio)) {
+                tblState.expanded.delete(folio);
+            } else {
+                tblState.expanded.add(folio);
+            }
+            renderVentasTableRows(tblState._lastData);
+        }
+
+        // ── Punto de entrada desde updateVentasView ───────────────────────
+        function updateVentasTable(data) {
+            console.log('🗂️ updateVentasTable() | registros recibidos:', data.length);
+            tblState._lastData = data;
+            renderVentasTableRows(data);
+        }
+
+
+        // ─── Genera array con TODOS los días del periodo (sin huecos) ───
+        function generarFechasEnRango(inicio, fin) {
+            const fechas = [];
+            const cur = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+            const finCopy = new Date(fin.getFullYear(), fin.getMonth(), fin.getDate());
+            while (cur <= finCopy) {
+                fechas.push(formatFecha(cur));
+                cur.setDate(cur.getDate() + 1);
+            }
+            return fechas;
+        }
+
+        // ─── Suma corrida sobre un array de números ───
+        function acumular(arr) {
+            let sum = 0;
+            return arr.map(v => { sum += (v || 0); return sum; });
+        }
+
+        // ─── Gráfica principal: ventas, costos (área apilada), tendencia ─────────
+        const chartSeriesState = {
+            ventas:true, tendencia:true, gastosFijos:true,
+            gastosAdmin:true, costoVentas:true, insumos:true, pagos:false
+        };
+
+        function updateVentasChartWithCosts(data, rangoFechas) {
+            const ctx = document.getElementById('chart-ventas-main');
+            if (!ctx) return;
+            if (!rangoFechas) rangoFechas = calcularRangoFechas(appState.config.periodo||'este-mes');
+            const allDates   = generarFechasEnRango(rangoFechas.start, rangoFechas.end);
+            const diasTotales= allDates.length || 1;
+
+            const gV={}, gP={};
+            data.forEach(row => {
+                const f=parseFecha(row['Fecha Ef-Venta']||row['Fecha Venta']); if(!f) return;
+                const k=formatFecha(f);
+                gV[k]=(gV[k]||0)+parseMonto(row['Total Venta']);
+                gP[k]=(gP[k]||0)+parseMonto(row['Total Pagos']);
+            });
+            const gC={};
+            const initC=k=>{if(!gC[k]) gC[k]={cv:0,ins:0,ga:0};};
+            (appState.costoVentasData?.costoVentas||[]).forEach(c=>{
+                const k=formatFecha(parseFecha(c.fecha)); if(!k) return; initC(k); gC[k].cv+=c.monto;
+            });
+            (appState.costoVentasData?.insumosMes||[]).forEach(c=>{
+                const k=formatFecha(parseFecha(c.fecha)); if(!k) return; initC(k); gC[k].ins+=c.monto;
+            });
+            (appState.costoVentasData?.gastosAdmin||[]).forEach(c=>{
+                const k=formatFecha(parseFecha(c.fecha)); if(!k) return; initC(k); gC[k].ga+=c.monto;
+            });
+
+            const dV  = allDates.map(d=>gV[d]||0);
+            const dP  = allDates.map(d=>gP[d]||0);
+            const dCV = allDates.map(d=>gC[d]?.cv||0);
+            const dIns= allDates.map(d=>gC[d]?.ins||0);
+            const dGA = allDates.map(d=>gC[d]?.ga||0);
+            const dGF = allDates.map(()=>(appState.config.costos.gastosFijos||0)/diasTotales);
+
+            const ac = appState.config.acumulado;
+            const ap = v => ac ? acumular(v) : v;
+            const vV=ap(dV), vP=ap(dP), vCV=ap(dCV), vIns=ap(dIns), vGA=ap(dGA), vGF=ap(dGF);
+
+            // Tendencia lineal sobre ventas acumuladas/diarias
+            function linReg(ys) {
+                const n=ys.length; if(n<2) return ys.map(()=>null);
+                let sx=0,sy=0,sxy=0,sxx=0;
+                ys.forEach((y,x)=>{sx+=x;sy+=y;sxy+=x*y;sxx+=x*x;});
+                const m=(n*sxy-sx*sy)/(n*sxx-sx*sx||1);
+                const b=(sy-m*sx)/n;
+                return ys.map((_,x)=>b+m*x);
+            }
+            const tend = linReg(vV);
+            const labels = allDates.map(d=>{const[,mm,dd]=d.split('-');return `${dd}/${mm}`;});
+
+            // ── Área apilada: pre-calcular valores cumulativos para costos ──
+            // Orden de abajo hacia arriba: GF → GA → CV → Ins
+            const showGF  = appState.config.costos.mostrarGastosFijos  && chartSeriesState.gastosFijos;
+            const showGA  = appState.config.costos.mostrarGastosAdmin  && chartSeriesState.gastosAdmin;
+            const showCV  = appState.config.costos.mostrarCostoVentas  && chartSeriesState.costoVentas;
+            const showIns = appState.config.costos.mostrarInsumos      && chartSeriesState.insumos;
+
+            const vGF_s  = vGF;
+            const vGA_s  = vGA.map((v,i)=>v+(showGF?vGF[i]:0));
+            const vCV_s  = vCV.map((v,i)=>v+(showGA?vGA_s[i]:(showGF?vGF_s[i]:0)));
+            const vIns_s = vIns.map((v,i)=>v+(showCV?vCV_s[i]:(showGA?vGA_s[i]:(showGF?vGF_s[i]:0))));
+
+            const ds = [];
+
+            // 💲 VENTAS — verde, sobre todo (order:0 = última capa dibujada)
+            ds.push({
+                id:'ventas', label: ac?'💲 Ventas (acum.)':'💲 Ventas diarias',
+                data:vV, type:'line', order:0,
+                borderColor:'#2ecc71', backgroundColor:'rgba(46,204,113,0.08)',
+                borderWidth:3, tension:0.3, fill:false,
+                pointRadius:allDates.length<=14?5:2,
+                pointBackgroundColor:'#2ecc71', pointBorderColor:'#fff', pointBorderWidth:1
+            });
+
+            // 📈 TENDENCIA — punteada verde claro, encima de áreas (order:1)
+            ds.push({
+                id:'tendencia', label:'📈 Tendencia',
+                data:tend, type:'line', order:1,
+                borderColor:'rgba(46,204,113,0.55)', backgroundColor:'transparent',
+                borderWidth:2, borderDash:[7,4], tension:0.15,
+                fill:false, pointRadius:0
+            });
+
+            // 💸 PAGOS — lila, línea opcional (order:2)
+            if (chartSeriesState.pagos) ds.push({
+                id:'pagos', label: ac?'💸 Pagos (acum.)':'💸 Total Pagos',
+                data:vP, type:'line', order:2,
+                borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.08)',
+                borderWidth:2, borderDash:[4,3], tension:0.3,
+                fill:false, pointRadius:allDates.length<=14?3:0
+            });
+
+            // ── ÁREAS APILADAS (order:3..6 — debajo de líneas) ────────────
+            // Capa base: Gastos Fijos (gris)
+            if (showGF) ds.push({
+                id:'gastosFijos', label: ac?'💰 G.Fijos (acum.)':'💰 Gastos Fijos',
+                data:vGF_s, type:'line', order:6,
+                borderColor:'rgba(148,163,184,0.6)', backgroundColor:'rgba(148,163,184,0.3)',
+                borderWidth:1, tension:0.3, fill:'origin', pointRadius:0
+            });
+
+            // Capa 2: Gastos Admin (rojo)
+            if (showGA) ds.push({
+                id:'gastosAdmin', label: ac?'💰 G.Admin (acum.)':'💰 Gastos Admin.',
+                data:vGA_s, type:'line', order:5,
+                borderColor:'rgba(239,68,68,0.6)', backgroundColor:'rgba(239,68,68,0.3)',
+                borderWidth:1, tension:0.3, fill:showGF?'-1':'origin', pointRadius:0
+            });
+
+            // Capa 3: Costo Ventas (naranja)
+            if (showCV) ds.push({
+                id:'costoVentas', label: ac?'💰 Costo Ventas (acum.)':'💰 Costo de Ventas',
+                data:vCV_s, type:'line', order:4,
+                borderColor:'rgba(249,115,22,0.6)', backgroundColor:'rgba(249,115,22,0.3)',
+                borderWidth:1, tension:0.3, fill:(showGA||showGF)?'-1':'origin', pointRadius:0
+            });
+
+            // Capa 4: Insumos (naranja claro, tope del stack)
+            if (showIns) ds.push({
+                id:'insumos', label: ac?'💰 Insumos (acum.)':'💰 Insumos',
+                data:vIns_s, type:'line', order:3,
+                borderColor:'rgba(251,146,60,0.6)', backgroundColor:'rgba(251,146,60,0.25)',
+                borderWidth:1, tension:0.3, fill:(showCV||showGA||showGF)?'-1':'origin', pointRadius:0
+            });
+
+            if (appState.charts.ventasMain) appState.charts.ventasMain.destroy();
+            appState.charts.ventasMain = new Chart(ctx, {
+                type:'line',
+                data:{ labels, datasets:ds },
+                options:{
+                    responsive:true, maintainAspectRatio:false,
+                    interaction:{ mode:'index', intersect:false },
+                    plugins:{
+                        legend:{
+                            display:true, position:'top',
+                            labels:{ color:'#fff', font:{size:11}, padding:14, usePointStyle:true },
+                            onClick:(evt,item,legend)=>{
+                                const meta=legend.chart.getDatasetMeta(item.datasetIndex);
+                                meta.hidden = meta.hidden===null ? true : !meta.hidden;
+                                const dsId=legend.chart.data.datasets[item.datasetIndex].id;
+                                if(dsId && dsId in chartSeriesState) chartSeriesState[dsId]=!meta.hidden;
+                                legend.chart.update();
+                                updateProyeccion(allDates,dV,dCV,dIns,dGA,dGF);
+                            }
+                        },
+                        tooltip:{
+                            callbacks:{
+                                label: c=>`${c.dataset.label}: ${formatCurrency(c.parsed.y)}`,
+                                title: ca=>labels[ca[0].dataIndex]+(ac?' (acum.)':'')
+                            }
+                        }
+                    },
+                    scales:{
+                        x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#fff',maxRotation:45,font:{size:10}} },
+                        y:{ beginAtZero:true, grid:{color:'rgba(255,255,255,0.05)'},
+                            ticks:{color:'#fff', callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'k':v)} }
+                    }
+                }
+            });
+
+            updateProyeccion(allDates, dV, dCV, dIns, dGA, dGF);
+        }
+
+        // ─── Proyección a fin de mes (proporcional a días transcurridos) ────────
+        function updateProyeccion(allDates, dV, dCV, dIns, dGA, dGF) {
+            const hoy     = new Date();
+            const diasMes = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0).getDate();
+            const n       = dV.length; if(n===0) return;
+
+            // Días del rango que ya pasaron (con datos reales, no futuros)
+            const hoyY = hoy.getFullYear();
+            const hoyM = String(hoy.getMonth()+1).padStart(2,'0');
+            const hoyD = String(hoy.getDate()).padStart(2,'0');
+            const hoyStr = `${hoyY}-${hoyM}-${hoyD}`;
+            const diasPasados = Math.max(1, allDates.filter(d=>d<=hoyStr).length);
+            const diasRestantes = Math.max(0, diasMes - diasPasados);
+
+            const ventasReal = dV.reduce((a,b)=>a+b,0);
+            // PROPORCIONAL: promedio diario real × días del mes
+            const promDiario = ventasReal / diasPasados;
+            const ventasProy = promDiario * diasMes;
+
+            // Costos: proporcional (real ya acumulado + promedio × días restantes)
+            const promC = arr => arr.reduce((a,b)=>a+b,0) / diasPasados;
+            const realC = arr => arr.reduce((a,b)=>a+b,0);
+
+            const cvProy  = chartSeriesState.costoVentas  ? realC(dCV)  + promC(dCV)  * diasRestantes : 0;
+            const insProy = chartSeriesState.insumos      ? realC(dIns) + promC(dIns) * diasRestantes : 0;
+            const gaProy  = chartSeriesState.gastosAdmin  ? realC(dGA)  + promC(dGA)  * diasRestantes : 0;
+            const gfProy  = chartSeriesState.gastosFijos  ? (appState.config.costos.gastosFijos||0) : 0;
+            const costoTotal = cvProy + insProy + gaProy + gfProy;
+            const resultado  = ventasProy - costoTotal;
+
+            // Punto de equilibrio
+            let eqStr = '—';
+            if (promDiario > 0) {
+                const costoDiario = costoTotal / diasMes;
+                if (promDiario > costoDiario) {
+                    const diasEq = Math.ceil(costoTotal / promDiario);
+                    if (diasEq > 0 && diasEq <= diasMes + 15) {
+                        const eqDate = new Date(hoy.getFullYear(), hoy.getMonth(), diasEq);
+                        eqStr = eqDate.toLocaleDateString('es-MX',{day:'2-digit',month:'short'});
+                    }
+                }
+            }
+
+            const set=(id,val,col)=>{
+                const el=document.getElementById(id); if(!el) return;
+                el.textContent=val; if(col) el.style.color=col;
+            };
+            set('proy-ventas',    formatCurrency(ventasProy),   'var(--neon-green)');
+            set('proy-costos',    formatCurrency(costoTotal),   'var(--neon-orange)');
+            set('proy-fijos',     formatCurrency(gfProy),       '#ef4444');
+            set('proy-resultado', resultado>=0?formatCurrency(resultado):'—',
+                resultado>=0?'var(--neon-blue)':'var(--text-mute)');
+            set('proy-equilibrio', eqStr, 'var(--neon-lila)');
+        }
+
+
+
+        // ══════════════════════════════════════════════════════════════
+        //  SECCIÓN SERVICIOS — Análisis completo
+        // ══════════════════════════════════════════════════════════════
+
+        // Estado local de servicios
+        const srvState = {
+            dim: 'dispositivo',
+            folioFilter: 'todos',
+            charts: {}
+        };
+
+        // ── Helpers de campo ────────────────────────────────────────────
+        function srvFecha(s)     { return parseFecha(s['Fecha ef-Recepción']||s['Fecha Ef-Recepción']||s['Fecha Recepción']||s['Fecha']); }
+        function srvFechaVenta(s){ return parseFecha(s['Fecha ef-Venta']||s['Fecha Ef-Venta']||s['Fecha Venta']||s['Fecha_Ef-Venta']); }
+        function srvFechaEntrega(s){ return parseFecha(s['Fecha (e) de Entrega de Diagnóstico']||s['Fecha Entrega Diagnóstico']||s['F. Entrega Diag']||s['Fecha Entrega']); }
+        function srvPrecio(s)    { return parseMonto(s['Servicio Mínimo']||s['Precio Servicio']||s['Precio']||s['Monto Servicio']||0); }
+        function srvResultado(s) { return s['Resultado']||s['Resultado del Servicio']||''; }
+        function srvDebidoA(s)   { return s['Debido A']||s['Debido a']||''; }
+        function srvDispositivo(s){ return s['Dispositivo']||''; }
+        function srvMarca(s)     { return s['Marca']||''; }
+        function srvModelo(s)    { return s['Modelo']||s['Modelo_Ver']||s['Modelo/Versión']||s['Modelo/Version']||''; }
+        function srvTipoSol(s)   { return s['Tipo de Solicitud']||s['Tipo Solicitud']||''; }
+        function srvTipoSrv(s)   { return s['Tipo Servicio']||s['Tipo de Servicio']||''; }
+        function srvEstatus(s)   { return s['Estatus']||s['Estado']||(s['Folio Venta']&&String(s['Folio Venta']).trim()?'Cerrado':'Abierto'); }
+        function srvValidez(s)   { return s['Validez']||''; }
+        function srvFolioRec(s)  { return s['Folio Recepción']||s['Folio Recepcion']||s['Folio']||''; }
+
+        // KPI Diagnóstico: días entre recepción y venta (o campo directo)
+        function srvKpiDiag(s) {
+            const kp = s['Días Diagnóstico']||s['Dias Diagnostico']||s['KPI Diagnóstico'];
+            if (kp !== undefined && kp !== null && kp !== '') return parseFloat(kp)||0;
+            const fr = srvFecha(s), fv = srvFechaVenta(s);
+            if (fr && fv) return Math.max(0, Math.round((fv-fr)/(1000*60*60*24)));
+            return null;
+        }
+
+        // ── Filtrado global de servicios ─────────────────────────────────
+        function getServiciosFiltered() {
+            const rango = calcularRangoFechas(appState.config.periodo||'este-mes');
+            const filDisp = document.getElementById('srv-fil-dispositivo')?.value || '';
+            const filMarca= document.getElementById('srv-fil-marca')?.value || '';
+            const filTipo = document.getElementById('srv-fil-tipo-sol')?.value || '';
+            const filRes  = document.getElementById('srv-fil-resultado')?.value || '';
+
+            return (appState.serviciosData||[]).filter(s => {
+                const f = srvFecha(s);
+                if (f) {
+                    const k = formatFecha(f);
+                    if (k < rango.startStr || k > rango.endStr) return false;
+                }
+                if (filDisp && srvDispositivo(s) !== filDisp) return false;
+                if (filMarca && srvMarca(s)  !== filMarca)  return false;
+                if (filTipo  && srvTipoSol(s) !== filTipo)  return false;
+                if (filRes   && srvResultado(s) !== filRes) return false;
+                return true;
+            });
+        }
+
+        // ── Poblar los selects de filtros ────────────────────────────────
+        function poblarSrvFiltros() {
+            const data = appState.serviciosData || [];
+            const fill = (id, vals, label) => {
+                const el = document.getElementById(id); if (!el) return;
+                const cur = el.value;
+                el.innerHTML = `<option value="">${label}</option>` +
+                    [...new Set(vals.filter(v=>v))].sort().map(v=>`<option value="${v}">${v}</option>`).join('');
+                if (cur) el.value = cur;
+            };
+            fill('srv-fil-dispositivo', data.map(srvDispositivo), 'Todos los Dispositivos');
+            fill('srv-fil-marca',       data.map(srvMarca),       'Todas las Marcas');
+            fill('srv-fil-tipo-sol',    data.map(srvTipoSol),     'Todos los Tipos Solicitud');
+            fill('srv-fil-resultado',   data.map(srvResultado),   'Todos los Resultados');
+        }
+
+        function resetServiciosFiltros() {
+            ['srv-fil-dispositivo','srv-fil-marca','srv-fil-tipo-sol','srv-fil-resultado']
+                .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            updateServiciosView();
+        }
+
+        // ── Entry point principal ────────────────────────────────────────
+        function updateServiciosView() {
+            if (appState.currentSection !== 'servicios') return;
+            poblarSrvFiltros();
+            const data = getServiciosFiltered();
+            const cnt = document.getElementById('srv-count');
+            if (cnt) cnt.textContent = `${data.length} servicios`;
+            buildServiciosCards(data);
+            buildServiciosCharts(data);
+            buildSrvDimTable(data, srvState.dim);
+            buildFoliosBoard();   // tablero usa TODOS los servicios (sin filtro de fecha para ver abiertos históricos)
+        }
+
+        // ── Tarjetas de resumen ──────────────────────────────────────────
+        function buildServiciosCards(data) {
+            const el = document.getElementById('srv-cards'); if (!el) return;
+            if (data.length === 0) { el.innerHTML=''; return; }
+
+            const total      = data.length;
+            const reparados  = data.filter(s => /repar|exitoso|completo|reparado/i.test(srvResultado(s))).length;
+            const sinRepar   = data.filter(s => /sin repar|no repar|irrepar|rechaz/i.test(srvResultado(s))).length;
+            const precios    = data.map(srvPrecio).filter(v=>v>0);
+            const precioSum  = precios.reduce((a,b)=>a+b,0);
+            const precioAvg  = precios.length ? precioSum/precios.length : 0;
+            const kpis       = data.map(srvKpiDiag).filter(v=>v!==null && v>=0);
+            const kpiAvg     = kpis.length ? kpis.reduce((a,b)=>a+b,0)/kpis.length : null;
+            const kpiColor   = kpiAvg===null?'inherit': kpiAvg<=1?'var(--neon-green)': kpiAvg<=3?'var(--neon-orange)':'#ef4444';
+
+            // Duración de entrega (recepción → venta)
+            const entregas   = data.map(s=>{
+                const fr=srvFecha(s), fv=srvFechaVenta(s);
+                return (fr&&fv) ? Math.max(0,Math.round((fv-fr)/(1000*60*60*24))) : null;
+            }).filter(v=>v!==null);
+            const entregaAvg = entregas.length ? entregas.reduce((a,b)=>a+b,0)/entregas.length : null;
+
+            const card = (ico,val,label,color,sub='') => `
+                <div class="stat-card">
+                    <div class="stat-value" style="color:${color};">${ico} ${val}</div>
+                    <div class="stat-label">${label}</div>
+                    ${sub?`<div style="font-size:10px;color:var(--text-mute);margin-top:2px;">${sub}</div>`:''}
+                </div>`;
+
+            el.innerHTML =
+                card('📋', total, 'Total Servicios', 'var(--neon-blue)') +
+                card('✅', `${total?Math.round(reparados/total*100):0}%`, 'Tasa Reparación',
+                    'var(--neon-green)', `${reparados} de ${total}`) +
+                card('🔴', `${total?Math.round(sinRepar/total*100):0}%`, 'Sin Reparar',
+                    '#ef4444', `${sinRepar} registros`) +
+                card('💲', formatCurrency(precioSum), 'Total Precio Servicio',
+                    'var(--neon-green)', `Prom ${formatCurrency(precioAvg)}`) +
+                card('🎯', kpiAvg!==null ? kpiAvg.toFixed(1)+' días' : '—', 'KPI Diagnóstico Prom.',
+                    kpiColor, kpis.length ? `${kpis.length} registros` : 'Sin datos de fechas') +
+                card('🚚', entregaAvg!==null ? entregaAvg.toFixed(1)+' días' : '—', 'Tiempo Entrega Prom.',
+                    'var(--neon-lila)', entregas.length ? `Recep → Venta` : 'Sin datos');
+        }
+
+        // ── Gráficas de servicios ────────────────────────────────────────
+        function buildServiciosCharts(data) {
+            buildChartSrvDispositivos(data);
+            buildChartSrvResultados(data);
+            buildChartSrvKpi(data);
+            buildChartSrvDebido(data);
+        }
+
+        function destroySrvChart(id) {
+            if (srvState.charts[id]) { srvState.charts[id].destroy(); delete srvState.charts[id]; }
+        }
+
+        // ┌─ Chart 1: Top Dispositivos — doble eje: volumen (barras) + precio prom (línea)
+        function buildChartSrvDispositivos(data) {
+            const ctx = document.getElementById('chart-srv-dispositivos'); if(!ctx) return;
+            destroySrvChart('dispositivos');
+
+            const byDisp = {};
+            data.forEach(s => {
+                const d = srvDispositivo(s)||'Sin definir';
+                if (!byDisp[d]) byDisp[d] = {count:0, precio:0};
+                byDisp[d].count++;
+                byDisp[d].precio += srvPrecio(s);
+            });
+            const sorted = Object.entries(byDisp).sort((a,b)=>b[1].count-a[1].count).slice(0,10);
+            const labels = sorted.map(([k])=>k);
+            const counts = sorted.map(([,v])=>v.count);
+            const precios= sorted.map(([,v])=>v.precio ? Math.round(v.precio/v.count) : 0);
+
+            srvState.charts.dispositivos = new Chart(ctx, {
+                data: {
+                    labels,
+                    datasets: [
+                        { type:'bar', label:'📋 Cantidad', data:counts, yAxisID:'yC',
+                          backgroundColor:'rgba(0,210,255,0.45)', borderColor:'rgba(0,210,255,0.8)', borderWidth:1, order:2 },
+                        { type:'line', label:'💲 Precio Prom.', data:precios, yAxisID:'yP',
+                          borderColor:'#2ecc71', backgroundColor:'rgba(46,204,113,0.1)',
+                          borderWidth:2, tension:0.3, fill:false, pointRadius:4, order:1 }
+                    ]
+                },
+                options: {
+                    responsive:true, maintainAspectRatio:false,
+                    interaction:{ mode:'index', intersect:false },
+                    plugins:{ legend:{ labels:{color:'#fff',font:{size:11}} },
+                              tooltip:{ callbacks:{ label:c=>c.datasetIndex===0 ? `${c.dataset.label}: ${c.parsed.y}` : `${c.dataset.label}: ${formatCurrency(c.parsed.y)}` } } },
+                    scales:{
+                        yC:{ type:'linear', position:'left', beginAtZero:true, ticks:{color:'var(--neon-blue)',font:{size:10}}, grid:{color:'rgba(255,255,255,0.04)'} },
+                        yP:{ type:'linear', position:'right', beginAtZero:true, ticks:{color:'var(--neon-green)',font:{size:10},callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'k':v)}, grid:{display:false} },
+                        x: { ticks:{color:'#fff',font:{size:10},maxRotation:35}, grid:{color:'rgba(255,255,255,0.04)'} }
+                    }
+                }
+            });
+        }
+
+        // ┌─ Chart 2: Distribución de Resultados — doughnut
+        function buildChartSrvResultados(data) {
+            const ctx = document.getElementById('chart-srv-resultados'); if(!ctx) return;
+            destroySrvChart('resultados');
+            const byRes = {};
+            data.forEach(s => { const r=srvResultado(s)||'Sin resultado'; byRes[r]=(byRes[r]||0)+1; });
+            const sorted = Object.entries(byRes).sort((a,b)=>b[1]-a[1]);
+            const COLORS = ['#2ecc71','#e74c3c','#f97316','#a855f7','#3b82f6','#facc15','#06b6d4','#84cc16'];
+            srvState.charts.resultados = new Chart(ctx, {
+                type:'doughnut',
+                data:{ labels:sorted.map(([k])=>k), datasets:[{
+                    data:sorted.map(([,v])=>v),
+                    backgroundColor:sorted.map((_,i)=>COLORS[i%COLORS.length]+'bb'),
+                    borderColor:sorted.map((_,i)=>COLORS[i%COLORS.length]),
+                    borderWidth:2
+                }]},
+                options:{
+                    responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{position:'right',labels:{color:'#fff',font:{size:10},padding:8}},
+                              tooltip:{callbacks:{ label:c=>`${c.label}: ${c.parsed} (${Math.round(c.parsed/data.length*100)}%)` }} }
+                }
+            });
+        }
+
+        // ┌─ Chart 3: KPI Diagnóstico por Tipo Solicitud — barras horizontales
+        function buildChartSrvKpi(data) {
+            const ctx = document.getElementById('chart-srv-kpi'); if(!ctx) return;
+            destroySrvChart('kpi');
+            const byTipo = {};
+            data.forEach(s => {
+                const t = srvTipoSol(s)||'Sin tipo';
+                const k = srvKpiDiag(s);
+                if (k===null) return;
+                if (!byTipo[t]) byTipo[t]={sum:0,n:0};
+                byTipo[t].sum+=k; byTipo[t].n++;
+            });
+            const sorted = Object.entries(byTipo)
+                .map(([k,v])=>({label:k, avg:v.sum/v.n, n:v.n}))
+                .sort((a,b)=>b.avg-a.avg);
+            const colorKpi = v => v<=1?'rgba(46,204,113,0.7)':v<=3?'rgba(249,115,22,0.7)':'rgba(239,68,68,0.7)';
+            srvState.charts.kpi = new Chart(ctx, {
+                type:'bar',
+                data:{ labels:sorted.map(s=>s.label), datasets:[{
+                    label:'🎯 Días promedio',
+                    data:sorted.map(s=>+s.avg.toFixed(2)),
+                    backgroundColor:sorted.map(s=>colorKpi(s.avg)),
+                    borderColor:sorted.map(s=>colorKpi(s.avg).replace('0.7','1')),
+                    borderWidth:1
+                }]},
+                options:{
+                    indexAxis:'y', responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{display:false},
+                              tooltip:{callbacks:{ label:c=>`${c.parsed.x.toFixed(1)} días (n=${sorted[c.dataIndex].n})` }} },
+                    scales:{
+                        x:{ beginAtZero:true, ticks:{color:'#fff',font:{size:10}}, grid:{color:'rgba(255,255,255,0.04)'} },
+                        y:{ ticks:{color:'#fff',font:{size:10}}, grid:{display:false} }
+                    }
+                }
+            });
+        }
+
+        // ┌─ Chart 4: Debido A — barras horizontales
+        function buildChartSrvDebido(data) {
+            const ctx = document.getElementById('chart-srv-debido'); if(!ctx) return;
+            destroySrvChart('debido');
+            const byD = {};
+            data.forEach(s => { const d=srvDebidoA(s)||'Sin especificar'; byD[d]=(byD[d]||0)+1; });
+            const sorted = Object.entries(byD).sort((a,b)=>b[1]-a[1]).slice(0,12);
+            srvState.charts.debido = new Chart(ctx, {
+                type:'bar',
+                data:{ labels:sorted.map(([k])=>k), datasets:[{
+                    label:'Servicios',
+                    data:sorted.map(([,v])=>v),
+                    backgroundColor:'rgba(168,85,247,0.55)', borderColor:'#a855f7', borderWidth:1
+                }]},
+                options:{
+                    indexAxis:'y', responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{display:false} },
+                    scales:{
+                        x:{ beginAtZero:true, ticks:{color:'#fff',font:{size:10}}, grid:{color:'rgba(255,255,255,0.04)'} },
+                        y:{ ticks:{color:'#fff',font:{size:10},maxRotation:0}, grid:{display:false} }
+                    }
+                }
+            });
+        }
+
+        // ── Tabla por dimensión ──────────────────────────────────────────
+        const SRV_DIMS = {
+            dispositivo: { label:'🖥️ Dispositivo', fn:srvDispositivo },
+            marca:       { label:'®️ Marca',        fn:srvMarca },
+            modelo:      { label:'📱 Modelo',       fn:srvModelo },
+            tipoSol:     { label:'1️⃣ Tipo Solicitud',fn:srvTipoSol },
+            tipoSrv:     { label:'⚙️ Tipo Servicio', fn:srvTipoSrv },
+            resultado:   { label:'✅ Resultado',    fn:srvResultado },
+            debidoA:     { label:'📌 Debido A',     fn:srvDebidoA }
+        };
+
+        function switchSrvDim(dim) {
+            srvState.dim = dim;
+            document.querySelectorAll('.srv-dim-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById('btn-srvdim-'+dim);
+            if (btn) btn.classList.add('active');
+            buildSrvDimTable(getServiciosFiltered(), dim);
+        }
+
+        function buildSrvDimTable(data, dim) {
+            const tbl = document.getElementById('srv-dim-table'); if(!tbl) return;
+            const cfg = SRV_DIMS[dim] || SRV_DIMS.dispositivo;
+
+            // Agrupar
+            const groups = {};
+            data.forEach(s => {
+                const key = cfg.fn(s) || '(Sin definir)';
+                if (!groups[key]) groups[key] = { count:0, precio:0, kpis:[], entregas:[], resultados:{}, sin:0 };
+                const g = groups[key];
+                g.count++;
+                g.precio += srvPrecio(s);
+                const kp = srvKpiDiag(s);
+                if (kp !== null) g.kpis.push(kp);
+                const res = srvResultado(s);
+                g.resultados[res] = (g.resultados[res]||0)+1;
+                if (/sin repar|no repar|irrepar/i.test(res)) g.sin++;
+                const fr=srvFecha(s), fv=srvFechaVenta(s);
+                if (fr&&fv) g.entregas.push(Math.max(0,Math.round((fv-fr)/(1000*60*60*24))));
+            });
+
+            const sorted = Object.entries(groups).sort((a,b)=>b[1].count-a[1].count);
+            const kpiCol = v => v<=1?'var(--neon-green)':v<=3?'var(--neon-orange)':'#ef4444';
+
+            tbl.innerHTML = `
+            <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.3);position:sticky;top:0;z-index:2;">
+                <th style="padding:6px 10px;text-align:left;">${cfg.label}</th>
+                <th style="padding:6px 10px;text-align:right;">📋 Qty</th>
+                <th style="padding:6px 10px;text-align:right;">💲 P.Servicio Total</th>
+                <th style="padding:6px 10px;text-align:right;">💲 Precio Prom.</th>
+                <th style="padding:6px 10px;text-align:right;">🎯 KPI Diag.</th>
+                <th style="padding:6px 10px;text-align:right;">🚚 T.Entrega</th>
+                <th style="padding:6px 10px;text-align:right;">✅ Reparados</th>
+                <th style="padding:6px 10px;text-align:right;">🔴 Sin Rep.</th>
+                <th style="padding:6px 10px;text-align:left;">📊 Top Resultado</th>
+            </tr></thead>
+            <tbody>${sorted.map(([key,g])=>{
+                const pProm  = g.count ? g.precio/g.count : 0;
+                const kpiAvg = g.kpis.length ? g.kpis.reduce((a,b)=>a+b,0)/g.kpis.length : null;
+                const entAvg = g.entregas.length ? g.entregas.reduce((a,b)=>a+b,0)/g.entregas.length : null;
+                const repOk  = Object.entries(g.resultados).filter(([k])=>/repar|exitoso|completo/i.test(k)).reduce((a,[,v])=>a+v,0);
+                const topRes = Object.entries(g.resultados).sort((a,b)=>b[1]-a[1])[0];
+                const pctSin = g.count ? Math.round(g.sin/g.count*100) : 0;
+                return `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:5px 10px;font-weight:500;">${key}</td>
+                    <td style="padding:5px 10px;text-align:right;color:var(--neon-blue);">${g.count}</td>
+                    <td style="padding:5px 10px;text-align:right;color:var(--neon-green);">${formatCurrency(g.precio)}</td>
+                    <td style="padding:5px 10px;text-align:right;color:var(--neon-green);">${formatCurrency(pProm)}</td>
+                    <td style="padding:5px 10px;text-align:right;font-weight:bold;color:${kpiAvg!==null?kpiCol(kpiAvg):'inherit'};">${kpiAvg!==null?kpiAvg.toFixed(1)+' d':'—'}</td>
+                    <td style="padding:5px 10px;text-align:right;color:var(--neon-lila);">${entAvg!==null?entAvg.toFixed(1)+' d':'—'}</td>
+                    <td style="padding:5px 10px;text-align:right;color:var(--neon-green);">${repOk}</td>
+                    <td style="padding:5px 10px;text-align:right;color:${pctSin>30?'#ef4444':'var(--text-mute)'};">${g.sin} (${pctSin}%)</td>
+                    <td style="padding:5px 10px;font-size:11px;color:var(--text-mute);">${topRes?`${topRes[0]} (${topRes[1]})`:'—'}</td>
+                </tr>`;
+            }).join('')}</tbody>`;
+        }
+
+        // ── Tablero de Folios Recepción ──────────────────────────────────
+        function buildFoliosBoard() {
+            const tbl = document.getElementById('folios-board-table'); if(!tbl) return;
+            const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+            // Usar TODOS los servicios (no filtrados por fecha para ver histórico)
+            const allSrv = appState.serviciosData || [];
+
+            const rows = allSrv.map(s => {
+                const folio    = srvFolioRec(s);
+                const estatus  = srvEstatus(s);  // Abierto / Cerrado
+                const validez  = srvValidez(s);
+                const fEntrega = srvFechaEntrega(s);
+                const fRec     = srvFecha(s);
+                const fVenta   = srvFechaVenta(s);
+
+                // Vigencia: comparar hoy vs fecha entrega diagnóstico
+                let vigencia = 'Sin fecha';
+                let diasAlerta = null;
+                if (fEntrega) {
+                    const fe = new Date(fEntrega); fe.setHours(0,0,0,0);
+                    const diffD = Math.round((hoy - fe)/(1000*60*60*24));
+                    if (diffD > 0) { vigencia = 'Vencido'; diasAlerta = diffD; }
+                    else           { vigencia = 'Vigente'; diasAlerta = diffD; }
+                }
+
+                return { s, folio, estatus, validez, vigencia, diasAlerta, fRec, fVenta, fEntrega };
+            }).filter(r => r.folio); // solo los que tienen folio
+
+            // Guardar para filtro
+            window._foliosRows = rows;
+            renderFoliosBoard(rows, srvState.folioFilter);
+        }
+
+        function filterFoliosBoard(filter, btn) {
+            srvState.folioFilter = filter;
+            document.querySelectorAll('.srv-folio-filter-btn').forEach(b=>b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            if (window._foliosRows) renderFoliosBoard(window._foliosRows, filter);
+        }
+
+        function renderFoliosBoard(rows, filter) {
+            const tbl = document.getElementById('folios-board-table'); if(!tbl) return;
+
+            let visible = rows;
+            if (filter === 'abiertos')  visible = rows.filter(r=> /abierto/i.test(r.estatus));
+            if (filter === 'vencidos')  visible = rows.filter(r=> r.vigencia === 'Vencido');
+            if (filter === 'validos')   visible = rows.filter(r=> /válido|valido|valid/i.test(r.validez));
+            if (filter === 'invalidos') visible = rows.filter(r=> /inválido|invalido|no válido/i.test(r.validez));
+
+            const cnt = document.getElementById('folios-board-count');
+            if (cnt) cnt.textContent = `${visible.length} folios`;
+
+            if (visible.length === 0) {
+                tbl.innerHTML = `<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--text-mute);">Sin folios para este filtro</td></tr>`;
+                return;
+            }
+
+            // Ordenar: vencidos primero, luego por días de alerta desc
+            visible.sort((a,b) => {
+                if (a.vigencia==='Vencido' && b.vigencia!=='Vencido') return -1;
+                if (a.vigencia!=='Vencido' && b.vigencia==='Vencido') return 1;
+                return (b.diasAlerta||0) - (a.diasAlerta||0);
+            });
+
+            const fmtDate = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'}) : '—';
+            const estiloVigencia = v =>
+                v==='Vencido' ? 'color:#ef4444;font-weight:bold;' :
+                v==='Vigente' ? 'color:var(--neon-green);' : 'color:var(--text-mute);';
+            const estiloEstatus  = e =>
+                /abierto/i.test(e) ? 'color:var(--neon-orange);font-weight:bold;' : 'color:var(--text-mute);';
+            const estiloValidez  = v =>
+                /válido|valido|valid/i.test(v) && !/inválido/i.test(v) ? 'color:var(--neon-green);' : 'color:#ef4444;';
+
+            tbl.innerHTML = `
+            <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.3);position:sticky;top:0;z-index:2;">
+                <th style="padding:6px 10px;">📘 Folio Rec.</th>
+                <th style="padding:6px 10px;">🖥️ Dispositivo</th>
+                <th style="padding:6px 10px;">®️ Marca / Modelo</th>
+                <th style="padding:6px 10px;">1️⃣ Tipo Sol.</th>
+                <th style="padding:6px 10px;text-align:center;">✅ Validez</th>
+                <th style="padding:6px 10px;text-align:center;">🔄️ Estatus</th>
+                <th style="padding:6px 10px;text-align:center;">⌛ Vigencia</th>
+                <th style="padding:6px 10px;text-align:center;">⚠️ Alerta</th>
+                <th style="padding:6px 10px;">📅 Recepción</th>
+                <th style="padding:6px 10px;">📅 F. Entrega Diag.</th>
+            </tr></thead>
+            <tbody>${visible.map(r => {
+                const s = r.s;
+                const alertaCell = r.vigencia==='Vencido'
+                    ? `<span style="color:#ef4444;font-size:11px;font-weight:bold;">🚨 +${r.diasAlerta}d</span>`
+                    : r.diasAlerta!==null && r.diasAlerta<=0
+                        ? `<span style="color:var(--neon-orange);font-size:11px;">⏰ ${Math.abs(r.diasAlerta)}d restantes</span>`
+                        : `<span style="color:var(--text-mute);">—</span>`;
+                const rowBg = r.vigencia==='Vencido' && /abierto/i.test(r.estatus)
+                    ? 'background:rgba(239,68,68,0.06);' : '';
+                return `<tr style="border-top:1px solid rgba(255,255,255,0.05);${rowBg}">
+                    <td style="padding:5px 10px;"><span class="badge-folio badge-recep">📘${r.folio}</span></td>
+                    <td style="padding:5px 10px;">${srvDispositivo(s)||'—'}</td>
+                    <td style="padding:5px 10px;font-size:11px;">${srvMarca(s)||'—'}${srvModelo(s)?` / ${srvModelo(s)}`:''}</td>
+                    <td style="padding:5px 10px;font-size:11px;">${srvTipoSol(s)||'—'}</td>
+                    <td style="padding:5px 10px;text-align:center;${estiloValidez(r.validez)}">${r.validez||'—'}</td>
+                    <td style="padding:5px 10px;text-align:center;${estiloEstatus(r.estatus)}">${r.estatus}</td>
+                    <td style="padding:5px 10px;text-align:center;${estiloVigencia(r.vigencia)}">${r.vigencia}</td>
+                    <td style="padding:5px 10px;text-align:center;">${alertaCell}</td>
+                    <td style="padding:5px 10px;font-size:11px;color:var(--text-mute);">${fmtDate(r.fRec)}</td>
+                    <td style="padding:5px 10px;font-size:11px;color:${r.vigencia==='Vencido'?'#ef4444':'var(--text-mute)'};">${fmtDate(r.fEntrega)}</td>
+                </tr>`;
+            }).join('')}</tbody>`;
+        }
+
+
+        // ─── Toggle collapsible sections ──────────────────────────────────────
+        function toggleCollapse(bodyId, arrowId) {
+            const body  = document.getElementById(bodyId);
+            const arrow = document.getElementById(arrowId);
+            if (!body) return;
+            const closing = !body.classList.contains('collapsed');
+            body.classList.toggle('collapsed', closing);
+            if (arrow) arrow.style.transform = closing ? 'rotate(-90deg)' : '';
+        }
+
+
+        // Función helper para formatear moneda
+        function formatCurrency(value) {
+            const num = parseFloat(value) || 0;
+            return '$' + num.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Función para reconectar sheets (ahora solo refresca los datos)
+        function reconnectSheets() {
+            console.log('Reconectando con Google Sheets...');
+            loadData();
+        }
+
+        // Función para refrescar datos
+        function refreshData() {
+            loadData();
+        }
+
+        // Función para aplicar configuración
+        function applyConfig() {
+            // Guardar configuración
+            appState.config.periodo = document.getElementById('periodo').value;
+            appState.config.agregacion = document.getElementById('agregacion').value;
+            appState.config.acumulado = document.getElementById('acumulacion').value === 'acumulado';
+            
+            console.log('⚙️ APLICANDO CONFIGURACIÓN:');
+            console.log('  Periodo:', appState.config.periodo);
+            console.log('  Agregación:', appState.config.agregacion);
+            console.log('  Acumulado:', appState.config.acumulado);
+            
+            // updateVentasView llama a calcularCostoDeVentas internamente con el rango correcto
+            updateVentasView();
+            
+            alert('✅ Configuración aplicada. El dashboard ahora muestra datos de: ' + appState.config.periodo.replace('-', ' ').toUpperCase());
+        }
+
+        // Función para resetear configuración
+        function resetConfig() {
+            document.getElementById('periodo').value = 'este-mes';
+            document.getElementById('agregacion').value = 'dia';
+            document.getElementById('acumulacion').value = 'acumulado';
+            document.getElementById('metric-total-venta').checked = true;
+            document.getElementById('metric-total-pagos').checked = true;
+            document.getElementById('metric-costo-venta').checked = false;
+            document.getElementById('metric-utilidad-bruta').checked = false;
+            
+            alert('Configuración reseteada a valores por defecto');
+        }
+
+        // Inicializar al cargar la página
+        window.onload = () => {
+            console.log('🚀 Iniciando Hospital del Móvil Dashboard...');
+            loadData();
+        };
+    </script>
+</body>
+
+</html>
