@@ -1,108 +1,103 @@
-# Cambios Realizados en el Dashboard HDM
-
-**Fecha:** 14 de febrero de 2026
-
-## Resumen de Cambios
-
-Se realizaron tres modificaciones principales al Dashboard de Hospital del Móvil según lo solicitado:
-
-### 1. ✅ Menú Lateral Convertido en Acordeón Horizontal
-
-**Cambio anterior:**
-- Menú lateral vertical fijo de 260px de ancho
-- Botones estáticos que solo cambiaban de sección
-
-**Cambio nuevo:**
-- Menú horizontal en la parte superior con logo y título
-- Secciones expandibles/colapsables al hacer clic
-- Los títulos abarcan todo el ancho disponible
-- Cada sección se puede expandir o contraer independientemente
-
-**Archivos modificados:**
-- CSS: `.app-container`, `.sidebar`, `.nav-sections-container`, `.nav-section-header`, `.nav-section-arrow`
-- HTML: Estructura del `<aside class="sidebar">` completamente rediseñada
-- JavaScript: Nueva función `toggleSection()` para manejar expansión/colapso
-
-### 2. ✅ Gráfica de Ventas a Ancho Completo
-
-**Cambio anterior:**
-- Gráfica ocupaba 9 de 12 columnas (75% del ancho)
-- Tarjeta de proyección al lado (3 columnas)
-- Altura de gráfica: 340px
-
-**Cambio nuevo:**
-- Gráfica ocupa las 12 columnas completas (100% del ancho)
-- Tarjeta de proyección movida debajo de la gráfica
-- Tarjeta de proyección ahora horizontal con items distribuidos
-- Altura de gráfica aumentada a 400px para mejor visualización
-
-**Archivos modificados:**
-- Línea ~775: `grid-column: span 9` → `grid-column: span 12`
-- Línea ~788: `grid-column: span 3` → `grid-column: span 12`
-- Línea ~790: Layout de proyección cambiado de vertical a horizontal
-
-### 3. ✅ Vista Inicial en Ventas
-
-**Cambio anterior:**
-- La sección "⚙️ Configuración" se mostraba por defecto
-- Primer botón del menú estaba marcado como activo
-
-**Cambio nuevo:**
-- La sección "📗 Ventas" se muestra por defecto al cargar
-- Sección de Ventas tiene clase `active-section` en el HTML
-- JavaScript inicializa el header de Ventas como activo
-
-**Archivos modificados:**
-- Línea ~605: `section-configuracion` ya no tiene `active-section`
-- Línea ~715: `section-ventas` ahora tiene `active-section`
-- Línea ~3169: `window.onload` activa automáticamente el header de Ventas
-
-## Mejoras Técnicas Adicionales
-
-### Estructura CSS Optimizada
-- Grid layout convertido a Flexbox vertical para mejor adaptabilidad
-- Sidebar ahora usa `border-bottom` en lugar de `border-right`
-- Transiciones suaves para efectos de hover y activación
-
-### JavaScript Mejorado
-- Función `toggleSection()` con lógica de acordeón completa
-- Prevención de errores con verificaciones de `event.target`
-- Mantiene compatibilidad con función `switchSection()` para código legacy
-
-### Responsive Design
-- Menú se adapta mejor a diferentes tamaños de pantalla
-- `flex-wrap: wrap` permite que las secciones se reorganicen en pantallas pequeñas
-- Gráfica aprovecha todo el espacio disponible
-
-## Archivos Entregables
-
-1. **index.html** - Dashboard actualizado con todos los cambios
-2. **CHANGELOG.md** - Este documento con explicación detallada de cambios
-
-## Instrucciones de Uso
-
-1. Reemplaza el archivo `index.html` actual en tu repositorio con la nueva versión
-2. Realiza un commit con descripción: "Rediseño de menú y expansión de gráfica de ventas"
-3. Abre el dashboard en el navegador
-4. Verás la sección de Ventas expandida por defecto
-5. Haz clic en cualquier título de sección para expandirla/colapsarla
-
-## Compatibilidad
-
-- ✅ Mantiene todas las funcionalidades existentes
-- ✅ No requiere cambios en las URLs de Google Sheets
-- ✅ Compatible con todos los navegadores modernos
-- ✅ Todas las gráficas y filtros funcionan igual que antes
-
-## Próximos Pasos Sugeridos
-
-1. Probar el dashboard con datos reales
-2. Ajustar colores o espaciados según preferencias
-3. Considerar agregar animaciones más suaves en transiciones
-4. Documentar el código para futura referencia
+# CHANGELOG v3 — HDM Dashboard
+## Fecha: 2026-02-16
 
 ---
 
-**Desarrollado por:** Claude (Anthropic)  
-**Proyecto:** Hospital del Móvil - Dashboard de Operaciones  
-**Versión:** 2.0 - Rediseño de Interfaz
+## Cambios implementados
+
+### 1. Fondo claro para área de análisis
+- `main-content` → `background: #f0f2f5` (gris muy claro)
+- `glass-card` → `background: #ffffff`, sombra ligera, sin backdrop-filter
+- Tablas: `th` → `background: #f8f9fa`, `color: #b22222`; filas hover `#fef2f2`
+- Headers sticky de tablas en Servicios/Anticipos: fondo claro, color rojo oscuro
+- El sidebar/menú acordeón mantiene su fondo oscuro (branding)
+
+### 2. Eliminación del filtro por Validez
+- Se quitaron los botones "Todas / Ninguna" de Validez de la sección Ventas
+- El filtrado ahora es automático: **solo se muestran registros válidos**
+- Lógica: `(validez campo vacío) OR (valor contiene "valid")`
+
+### 3. Barra horizontal de dimensiones (filtros activos)
+Cada dimensión es un botón expandible con dropdown de opciones (checkboxes multiselección):
+- 📘 **Recepción** — radio: Todo / Con Servicio / Sin Servicio
+- 📒 **Anticipo** — radio: Todo / Con Anticipo / Sin Anticipo
+- 🖥️ **Dispositivo** — multiselección de valores únicos
+- ®️ **Marca** — multiselección
+- 📱 **Modelo** — multiselección
+- 🏁 **Resultado** — multiselección
+- 👤 **Debido a** — multiselección
+- 1️⃣ **Tipo Solicitud** — multiselección
+- 2️⃣ **Subtipo Solicitud** — multiselección
+- ⚙️ **Tipo Servicio** — multiselección
+- Botón **✕ Limpiar todo** que resetea todos los filtros
+- Contador de registros activos `N registros (de M)`
+
+### 4. Barra deslizante de rango con toggle de métrica
+- Slider horizontal (estilo volumen de audio) que filtra por mínimo de Total Venta o Margen de Contribución
+- Toggle que alterna entre **💲 Total Venta** y **💹 Margen Contrib.**
+- El valor mínimo se muestra en tiempo real conforme el usuario mueve el slider
+
+### 5. Toggles de periodos en la gráfica principal
+Tres botones tipo pill activables/desactivables:
+- **● Este periodo** (verde) — siempre activo por defecto
+- **● Periodo anterior** (morado) — añade línea punteada al chart
+- **● Mismo mes año ant.** (azul) — añade segunda línea punteada
+
+Implementación: `injectPeriodDatasets()` añade datasets con `_isPeriodo: true` al chart existente.
+
+### 6. Anillo triple de distribución
+Canvas `chart-donut-triple` — Doughnut de 3 anillos concéntricos:
+- **Exterior (verde)**: Total Ventas selección vs resto
+- **Medio (azul)**: Margen de Contribución selección vs resto
+- **Interior (amarillo)**: Cantidad de Folios selección vs resto
+- Cada anillo muestra porcentaje y valor absoluto en leyenda debajo
+
+### 7. Gráfica mixta por dimensión
+Canvas `chart-mixed-dim` — Gráfica combinada Chart.js:
+- **Área (verde semitransparente)**: Total Venta
+- **Barras (azul)**: Margen de Contribución
+- **Línea (amarillo)**: Número de Folios (eje Y secundario derecho)
+- Dropdown **Eje X** con todas las dimensiones del menú superior
+- Se actualiza automáticamente con cada cambio de filtro o dimensión
+
+### 8. Leyenda informativa fuera de tarjetas
+La nota `"Basado en tendencia lineal..."` se movió debajo de la fila de tarjetas de indicadores, en un bloque `.leyenda-nota` de ancho completo (span-12).
+
+### 9. Colores de tarjetas indicadores actualizados para fondo claro
+- Total Ventas → borde superior verde `#4CAF50`
+- Costo Ventas / Costo Total → naranja `#FF9800`
+- Utilidad Bruta → azul `#2196F3`
+- Total Pagos / Extracciones / Otros Ingresos → morado `#9C27B0`
+- Ticket Promedio → verde `#4CAF50`
+
+### 10. Colores de gráfica principal adaptados a fondo claro
+- Ejes X e Y: `color: '#374151'` (gris oscuro)
+- Grid lines: `color: '#f3f4f6'` (gris muy suave)
+- Leyenda: `color: '#374151'`
+
+---
+
+## Archivos de seguridad
+| Versión | Archivo | Descripción |
+|---------|---------|-------------|
+| v1 | `index_v1_original.html` | Estado inicial del proyecto |
+| v2 | `index_v2_menu_acordeon.html` | Menú horizontal acordeón + gráfica ancho completo |
+| v3 | `index.html` (actual) | Fondo claro + barra filtros + anillo triple + gráfica mixta |
+
+---
+
+## Funciones JS añadidas
+| Función | Descripción |
+|---------|-------------|
+| `toggleDimPanel(panelId, btn)` | Abre/cierra dropdown de dimensión |
+| `applyDimFilter(dim, input)` | Aplica selección de un filtro de dimensión |
+| `clearDimFilter(dim)` | Limpia selección de una dimensión |
+| `clearAllDimFilters()` | Resetea todos los filtros dimensionales |
+| `toggleRangeMetric()` | Alterna slider entre Total Venta y Margen |
+| `applyRangeFilter()` | Aplica filtro mínimo del slider |
+| `togglePeriodo(periodo, btn)` | Activa/desactiva línea de periodo en gráfica |
+| `filterVentasByDim(ventas)` | Filtra array de ventas con todos los dimState activos |
+| `buildDimOptions(dim, values)` | Puebla checkboxes de un dropdown de dimensión |
+| `updateDonutTriple(filtered, all)` | Dibuja/actualiza el anillo triple |
+| `updateMixedChart(filtered?)` | Dibuja/actualiza la gráfica mixta |
+| `injectPeriodDatasets(chart, all, rango)` | Añade líneas de periodos anteriores al chart principal |
