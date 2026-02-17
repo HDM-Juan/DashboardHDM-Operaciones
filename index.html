@@ -95,8 +95,8 @@
         }
 
         .app-container {
-            display: grid;
-            grid-template-columns: 260px 1fr;
+            display: flex;
+            flex-direction: column;
             height: 100vh;
             position: relative;
         }
@@ -104,7 +104,7 @@
         .sidebar {
             background: rgba(15, 5, 5, 0.4);
             backdrop-filter: blur(15px);
-            border-right: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--glass-border);
             padding: 20px;
             display: flex;
             flex-direction: column;
@@ -118,11 +118,9 @@
             background: rgba(0, 0, 0, 0.6);
             border-radius: 50%;
             padding: 15px;
-            width: 140px;
-            height: 140px;
-            margin-left: auto;
-            margin-right: auto;
-            display: flex;
+            width: 100px;
+            height: 100px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             border: 2px solid var(--brand-red);
@@ -132,6 +130,51 @@
         .logo-img {
             width: 100%;
             border-radius: 50%;
+        }
+
+        .nav-sections-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .nav-section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 20px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            color: var(--text-mute);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            font-weight: 600;
+            min-width: 200px;
+            justify-content: space-between;
+        }
+
+        .nav-section-header:hover {
+            background: rgba(178, 34, 34, 0.15);
+            color: white;
+        }
+
+        .nav-section-header.active {
+            background: linear-gradient(90deg, rgba(178, 34, 34, 0.35), rgba(178, 34, 34, 0.15));
+            border: 1px solid var(--brand-red);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-section-arrow {
+            transition: transform 0.3s ease;
+            font-size: 12px;
+        }
+
+        .nav-section-header.active .nav-section-arrow {
+            transform: rotate(180deg);
         }
 
         .nav-btn {
@@ -488,49 +531,18 @@
     <div class="app-container">
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <div class="logo-area">
-                <img src="https://i.imgur.com/6R6fPFf.gif" alt="Hospital del Móvil" class="logo-img"
-                     onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
-                <div id="logo-fallback" style="display:none; text-align:center; padding:20px 10px;">
-                    <div style="font-size:22px; font-weight:700; color:#0066cc; line-height:1.2;">
-                        Hospital<br>del Móvil
+            <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
+                <div class="logo-area">
+                    <img src="https://i.imgur.com/6R6fPFf.gif" alt="Hospital del Móvil" class="logo-img"
+                         onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
+                    <div id="logo-fallback" style="display:none; text-align:center; padding:20px 10px;">
+                        <div style="font-size:22px; font-weight:700; color:#0066cc; line-height:1.2;">
+                            Hospital<br>del Móvil
+                        </div>
+                        <div style="font-size:11px; color:#666; margin-top:5px; font-weight:500;">ZONA ROSA</div>
                     </div>
-                    <div style="font-size:11px; color:#666; margin-top:5px; font-weight:500;">ZONA ROSA</div>
                 </div>
-            </div>
 
-            <nav>
-                <div class="nav-btn active" onclick="switchSection('configuracion')">
-                    <i class="fas fa-cog"></i>
-                    <span>⚙️ Configuración</span>
-                </div>
-                <div class="nav-btn" onclick="switchSection('ventas')">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>📗 Ventas</span>
-                </div>
-                <div class="nav-btn" onclick="switchSection('servicios')">
-                    <i class="fas fa-tools"></i>
-                    <span>📘 Servicios</span>
-                </div>
-                <div class="nav-btn" onclick="switchSection('anticipos')">
-                    <i class="fas fa-hand-holding-usd"></i>
-                    <span>📒 Anticipos</span>
-                </div>
-                <div class="nav-btn" onclick="switchSection('compras')">
-                    <i class="fas fa-boxes"></i>
-                    <span>🛒 Compras</span>
-                </div>
-                <div class="nav-btn" onclick="switchSection('gastos')">
-                    <i class="fas fa-receipt"></i>
-                    <span>📕 Gastos</span>
-                </div>
-            </nav>
-        </aside>
-
-        <!-- MAIN CONTENT -->
-        <main class="main-content">
-            <!-- Header Controls -->
-            <div class="header-controls">
                 <div>
                     <h1 style="margin: 0; font-size: 24px;">
                         Hospital del Móvil - Dashboard de Operaciones
@@ -539,16 +551,58 @@
                         Zona Rosa
                     </p>
                 </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button onclick="refreshData()" class="btn-reset">
-                        <i class="fas fa-sync-alt"></i> Actualizar Datos
-                    </button>
-                    <span id="last-update" style="font-size: 12px; color: var(--text-mute);"></span>
-                </div>
             </div>
 
+            <nav class="nav-sections-container">
+                <div class="nav-section-header" onclick="toggleSection('ventas')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>📗 Ventas</span>
+                    </div>
+                    <span class="nav-section-arrow">▼</span>
+                </div>
+                <div class="nav-section-header" onclick="toggleSection('servicios')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-tools"></i>
+                        <span>📘 Servicios</span>
+                    </div>
+                    <span class="nav-section-arrow">▼</span>
+                </div>
+                <div class="nav-section-header" onclick="toggleSection('anticipos')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-hand-holding-usd"></i>
+                        <span>📒 Anticipos</span>
+                    </div>
+                    <span class="nav-section-arrow">▼</span>
+                </div>
+                <div class="nav-section-header" onclick="toggleSection('compras')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-boxes"></i>
+                        <span>🛒 Compras</span>
+                    </div>
+                    <span class="nav-section-arrow">▼</span>
+                </div>
+                <div class="nav-section-header" onclick="toggleSection('gastos')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-receipt"></i>
+                        <span>📕 Gastos</span>
+                    </div>
+                    <span class="nav-section-arrow">▼</span>
+                </div>
+                <div class="nav-section-header" onclick="toggleSection('configuracion')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-cog"></i>
+                        <span>⚙️ Configuración</span>
+                    </div>
+                    <span class="nav-section-arrow">▼</span>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
             <!-- SECCIÓN: CONFIGURACIÓN -->
-            <section id="section-configuracion" class="dashboard-section active-section">
+            <section id="section-configuracion" class="dashboard-section">
                 <div class="glass-card span-12">
                     <h2 class="card-title">
                         <i class="fas fa-sliders-h"></i>
@@ -658,7 +712,7 @@
             </section>
 
             <!-- SECCIÓN: VENTAS -->
-            <section id="section-ventas" class="dashboard-section">
+            <section id="section-ventas" class="dashboard-section active-section">
                 <!-- Filtros de Validez -->
                 <div class="glass-card span-12" style="padding: 15px;">
                     <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
@@ -718,22 +772,22 @@
                 </div>
 
                 <!-- ╔══ GRÁFICA + PROYECCIÓN (lado a lado) ══╗ -->
-                <div class="glass-card" style="grid-column: span 9;">
+                <div class="glass-card" style="grid-column: span 12;">
                     <div class="collapsible-header" onclick="toggleCollapse('ventas-chart-body', 'arrow-ventas-chart')">
                         <span>📊 Gráfica de Ventas &amp; Tendencia</span>
                         <span class="collapse-arrow" id="arrow-ventas-chart">▼</span>
                     </div>
                     <div id="ventas-chart-body" class="collapsible-body" style="padding-top:10px;">
-                        <div class="chart-container" style="height:340px;">
+                        <div class="chart-container" style="height:400px;">
                             <canvas id="chart-ventas-main"></canvas>
                         </div>
                     </div>
                 </div>
 
                 <!-- Tarjeta de proyección a fin de mes -->
-                <div class="glass-card" style="grid-column: span 3; border: 1px solid rgba(168,85,247,0.4);">
+                <div class="glass-card" style="grid-column: span 12; border: 1px solid rgba(168,85,247,0.4);">
                     <div class="card-title" style="color:var(--neon-lila);">🔮 Proyección</div>
-                    <div style="display:flex;flex-direction:column;gap:0;">
+                    <div style="display:flex;gap:30px;justify-content:space-around;flex-wrap:wrap;">
 
                         <div class="proy-row">
                             <div>
@@ -1224,6 +1278,46 @@
         };
 
         // Función para cambiar de sección
+        function toggleSection(sectionName) {
+            const section = document.getElementById(`section-${sectionName}`);
+            const header = event.target.closest('.nav-section-header');
+            
+            // Verificar si la sección ya está activa
+            const isActive = section && section.classList.contains('active-section');
+            
+            if (isActive) {
+                // Si está activa, colapsarla
+                section.classList.remove('active-section');
+                header.classList.remove('active');
+            } else {
+                // Si no está activa, ocultar otras secciones y mostrar esta
+                document.querySelectorAll('.dashboard-section').forEach(s => {
+                    s.classList.remove('active-section');
+                });
+                document.querySelectorAll('.nav-section-header').forEach(h => {
+                    h.classList.remove('active');
+                });
+                
+                if (section) {
+                    section.classList.add('active-section');
+                }
+                if (header) {
+                    header.classList.add('active');
+                }
+                
+                // Activar vistas por sección
+                if (sectionName === 'servicios') {
+                    appState.currentSection = 'servicios';
+                    setTimeout(updateServiciosView, 50);
+                } else if (sectionName === 'ventas') {
+                    appState.currentSection = 'ventas';
+                    setTimeout(updateVentasView, 50);
+                } else {
+                    appState.currentSection = sectionName;
+                }
+            }
+        }
+
         function switchSection(sectionName) {
             // Ocultar todas las secciones
             document.querySelectorAll('.dashboard-section').forEach(section => {
@@ -1242,7 +1336,9 @@
             }
 
             // Activar el botón correspondiente
-            event.target.closest('.nav-btn').classList.add('active');
+            if (event && event.target) {
+                event.target.closest('.nav-btn').classList.add('active');
+            }
             // Activar vistas por sección
             if (sectionName === 'servicios') {
                 appState.currentSection = 'servicios';
@@ -3072,6 +3168,13 @@
         // Inicializar al cargar la página
         window.onload = () => {
             console.log('🚀 Iniciando Hospital del Móvil Dashboard...');
+            
+            // Activar la sección de Ventas por defecto
+            const ventasHeader = document.querySelector('.nav-section-header');
+            if (ventasHeader) {
+                ventasHeader.classList.add('active');
+            }
+            
             loadData();
         };
     </script>
