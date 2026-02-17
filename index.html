@@ -105,26 +105,34 @@
             background: rgba(15, 5, 5, 0.4);
             backdrop-filter: blur(15px);
             border-bottom: 1px solid var(--glass-border);
-            padding: 20px;
+            padding: 12px 30px;
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            flex-direction: row;
+            align-items: flex-end;  /* alinea al piso */
+            justify-content: space-between;
+            gap: 30px;
             z-index: 10;
+            min-height: 70px;
+        }
+
+        .logo-brand-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
 
         .logo-area {
-            text-align: center;
-            margin-bottom: 20px;
             background: rgba(0, 0, 0, 0.6);
             border-radius: 50%;
-            padding: 15px;
-            width: 100px;
-            height: 100px;
+            padding: 8px;
+            width: 50px;
+            height: 50px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             border: 2px solid var(--brand-red);
-            box-shadow: 0 0 20px rgba(178, 34, 34, 0.3);
+            box-shadow: 0 0 15px rgba(178, 34, 34, 0.3);
+            flex-shrink: 0;
         }
 
         .logo-img {
@@ -132,28 +140,44 @@
             border-radius: 50%;
         }
 
+        .brand-title {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .brand-title h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .brand-title p {
+            margin: 2px 0 0 0;
+            color: var(--text-mute);
+            font-size: 12px;
+        }
+
         .nav-sections-container {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: flex-start;
+            flex-wrap: nowrap;
+            gap: 8px;
+            align-items: flex-end;
         }
 
         .nav-section-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 15px 20px;
-            border-radius: 12px;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid transparent;
             color: var(--text-mute);
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 16px;
+            font-size: 13px;
             font-weight: 600;
-            min-width: 200px;
-            justify-content: space-between;
+            white-space: nowrap;
         }
 
         .nav-section-header:hover {
@@ -170,7 +194,7 @@
 
         .nav-section-arrow {
             transition: transform 0.3s ease;
-            font-size: 12px;
+            font-size: 10px;
         }
 
         .nav-section-header.active .nav-section-arrow {
@@ -531,71 +555,47 @@
     </div>
 
     <div class="app-container">
-        <!-- SIDEBAR -->
+        <!-- HEADER -->
         <aside class="sidebar">
-            <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
+            <!-- Logo + Marca a la izquierda -->
+            <div class="logo-brand-group">
                 <div class="logo-area">
                     <img src="https://i.imgur.com/6R6fPFf.gif" alt="Hospital del Móvil" class="logo-img"
                          onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
-                    <div id="logo-fallback" style="display:none; text-align:center; padding:20px 10px;">
-                        <div style="font-size:22px; font-weight:700; color:#0066cc; line-height:1.2;">
-                            Hospital<br>del Móvil
-                        </div>
-                        <div style="font-size:11px; color:#666; margin-top:5px; font-weight:500;">ZONA ROSA</div>
+                    <div id="logo-fallback" style="display:none; text-align:center; padding:5px;">
+                        <div style="font-size:10px; font-weight:700; color:#0066cc; line-height:1;">HDM</div>
                     </div>
                 </div>
-
-                <div>
-                    <h1 style="margin: 0; font-size: 24px;">
-                        Hospital del Móvil - Dashboard de Operaciones
-                    </h1>
-                    <p style="margin: 5px 0 0 0; color: var(--text-mute); font-size: 14px;">
-                        Zona Rosa
-                    </p>
+                <div class="brand-title">
+                    <h1>Hospital del Móvil - Dashboard de Operaciones</h1>
+                    <p>Zona Rosa</p>
                 </div>
             </div>
 
+            <!-- Menú a la derecha, alineado al piso -->
             <nav class="nav-sections-container">
                 <div class="nav-section-header" onclick="toggleSection('ventas')">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span>📗 Ventas</span>
-                    </div>
+                    <span>📗 Ventas</span>
                     <span class="nav-section-arrow">▼</span>
                 </div>
                 <div class="nav-section-header" onclick="toggleSection('servicios')">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-tools"></i>
-                        <span>📘 Servicios</span>
-                    </div>
+                    <span>📘 Servicios</span>
                     <span class="nav-section-arrow">▼</span>
                 </div>
                 <div class="nav-section-header" onclick="toggleSection('anticipos')">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-hand-holding-usd"></i>
-                        <span>📒 Anticipos</span>
-                    </div>
+                    <span>📒 Anticipos</span>
                     <span class="nav-section-arrow">▼</span>
                 </div>
                 <div class="nav-section-header" onclick="toggleSection('compras')">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-boxes"></i>
-                        <span>🛒 Compras</span>
-                    </div>
+                    <span>💰 Compras</span>
                     <span class="nav-section-arrow">▼</span>
                 </div>
                 <div class="nav-section-header" onclick="toggleSection('gastos')">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-receipt"></i>
-                        <span>📕 Gastos</span>
-                    </div>
+                    <span>💸 Gastos</span>
                     <span class="nav-section-arrow">▼</span>
                 </div>
                 <div class="nav-section-header" onclick="toggleSection('configuracion')">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-cog"></i>
-                        <span>⚙️ Configuración</span>
-                    </div>
+                    <span>⚙️ Config</span>
                     <span class="nav-section-arrow">▼</span>
                 </div>
             </nav>
@@ -1943,6 +1943,9 @@
 
         // Función para actualizar vista de ventas
         function updateVentasView() {
+            console.log('🔄 updateVentasView iniciando...');
+            console.log('📊 appState.ventasData:', appState.ventasData?.length || 0, 'registros');
+            
             if (!appState.ventasData || appState.ventasData.length === 0) {
                 console.warn('⚠️ No hay datos de ventas para mostrar');
                 return;
@@ -1951,20 +1954,27 @@
             // Calcular rango de fechas según periodo configurado
             const periodo = appState.config.periodo || 'este-mes';
             const rangoFechas = calcularRangoFechas(periodo);
+            console.log('📅 Periodo:', periodo, '→', rangoFechas.startStr, 'a', rangoFechas.endStr);
 
             // ── 1. Filtrar: solo válidos + rango de fechas ──────────────────
             const porFecha = appState.ventasData.filter(v => {
-                const val = (v['Validez'] || '').toString().trim().toLowerCase()
-                    .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // quitar acentos
-                // Excluir solo si dice explícitamente "invalido", "cancelado", "eliminado"
-                const invalidos = ['invalido','cancelado','eliminado','no valido','inválido'];
-                if (val && invalidos.some(x => val.includes(x))) return false;
+                // Filtro de validez MUY permisivo: incluir todo excepto "inválido", "cancelado", "eliminado"
+                const val = (v['Validez'] || '').toString().trim().toLowerCase();
+                // Solo excluir si contiene explícitamente estas palabras
+                if (val.includes('invalid') || val.includes('invalido') || 
+                    val.includes('inválido') || val.includes('cancelado') || 
+                    val.includes('eliminado') || val.includes('cancel')) {
+                    return false;
+                }
+                // Filtro de fecha
                 const fechaRaw = v['Fecha Ef-Venta'] || v['Fecha Venta'];
                 const fechaObj = parseFecha(fechaRaw);
                 if (!fechaObj) return false;
                 const fechaKey = formatFecha(fechaObj);
                 return fechaKey >= rangoFechas.startStr && fechaKey <= rangoFechas.endStr;
             });
+
+            console.log('✅ Después filtro fecha+validez:', porFecha.length, 'registros');
 
             // ── 2. Poblar opciones de dimensiones (solo primera vez o cuando cambien) ──
             const dimFields = {
@@ -1994,6 +2004,7 @@
 
             // ── 3. Aplicar filtros de dimensión sobre los ya filtrados por fecha ──
             const validVentas = filterVentasByDim(porFecha);
+            console.log('✅ Después filtro dimensiones:', validVentas.length, 'registros');
 
             // Contador de registros
             const cntEl = document.getElementById('ventas-filtros-count');
