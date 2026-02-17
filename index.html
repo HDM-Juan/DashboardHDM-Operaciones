@@ -30,7 +30,7 @@
             --neon-yellow: #FFC107;
             --neon-green: #4CAF50;
             --text-main: #ecf0f1;
-            --text-mute: #aab7b8;
+            --text-mute: #aab7b8;        /* gris claro — para sidebar oscuro */
             --neon-lila: #9C27B0;
             --neon-orange: #FF9800;
         }
@@ -209,59 +209,81 @@
         .dashboard-section.active-section { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         /* ═══════════════════════════════════════════════════════
-           FONDO CLARO PARA ÁREA DE ANÁLISIS
+           ÁREA DE ANÁLISIS — fondo oscuro que rodea las tarjetas
         ═══════════════════════════════════════════════════════ */
         .main-content {
             padding: 20px 30px 30px;
             overflow-y: auto;
             position: relative;
-            background: #f0f2f5;
+            /* Mismo tono oscuro del header/sidebar */
+            background: radial-gradient(circle at 30% 50%, rgba(10,35,12,0.55) 0%, transparent 65%),
+                        linear-gradient(rgba(5,15,6,0.92), rgba(5,15,6,0.97)),
+                        url('https://www.transparenttextures.com/patterns/cubes.png');
+            background-size: auto, auto, 400px;
             flex: 1;
         }
 
-        /* Sobreescribir glass-card para zona clara */
+        /* Variables sobrescritas dentro de tarjetas (fondo claro) */
         .glass-card {
-            background: #ffffff;
-            border: 1px solid rgba(178, 34, 34, 0.15);
+            --text-mute: #4a6b4e;
+        }
+        .glass-card canvas {
+            background: transparent !important;
+            border-radius: 8px;
+        }
+        .glass-card,
+        .glass-card p,
+        .glass-card span,
+        .glass-card label,
+        .glass-card div {
+            color: #1a2e1b;
+        }
+        /* Tarjetas: fondo verde muy tenue, texto oscuro legible */
+        .glass-card {
+            background: #edf7ee;          /* verde clarísimo */
+            border: 1px solid rgba(46,139,54,0.22);
             border-radius: 16px;
             padding: 20px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 14px rgba(0,0,0,0.28), 0 0 0 1px rgba(46,139,54,0.1);
             position: relative;
             overflow: hidden;
             transition: transform 0.2s, box-shadow 0.3s;
+            color: #1a2e1b;              /* texto base oscuro */
         }
         .glass-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(178,34,34,0.12);
-            border-color: rgba(178, 34, 34, 0.3);
+            box-shadow: 0 6px 22px rgba(0,0,0,0.35), 0 0 0 1px rgba(46,139,54,0.3);
+            border-color: rgba(46,139,54,0.4);
         }
         .card-title {
             font-size: 15px;
             font-weight: 600;
             margin-bottom: 12px;
-            color: #4a0000;
+            color: #1a4a1e;              /* verde oscuro para títulos */
             display: flex;
             align-items: center;
             gap: 8px;
         }
         .stat-value { font-size: 28px; font-weight: 700; margin: 6px 0; }
-        .stat-label  { color: #6b7280; font-size: 13px; }
+        .stat-label  { color: #4a6b4e; font-size: 13px; }
 
-        /* Tablas sobre fondo claro */
+        /* Tablas dentro de las tarjetas */
         table { width:100%; border-collapse:collapse; margin-top:10px; }
-        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
-        th { background: #f8f9fa; color: #b22222; font-weight: 600; }
-        tr:hover { background: #fef2f2; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #c8e6c9; font-size: 13px; color: #1a2e1b; }
+        th { background: #d4edda; color: #145a1e; font-weight: 600; }
+        tr:hover { background: #c8e6c9; }
+        td { color: #1a2e1b; }
         #ventas-main-table thead th {
             position: sticky; top: 0; z-index: 2;
-            background: #f8f9fa;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            background: #d4edda;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.12);
         }
         /* subrow */
         .subrow-frame td {
             border-left: 3px solid rgba(33,150,243,0.5);
             border-bottom: 2px solid rgba(33,150,243,0.15);
-            background: #f0f7ff;
+            background: #e3f0ff;
+            color: #1a2e1b;
         }
 
         /* ═══════════════════════════════════════════════════════
@@ -273,10 +295,10 @@
             gap: 8px;
             flex-wrap: wrap;
             padding: 10px 16px;
-            background: #fff;
+            background: #d4edda;
             border-radius: 12px;
-            border: 1px solid rgba(178,34,34,0.15);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid rgba(46,139,54,0.25);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         .dim-dropdown {
             position: relative;
@@ -353,9 +375,9 @@
         .range-bar-wrap {
             display: flex; align-items: center; gap: 10px;
             padding: 8px 14px;
-            background: #fff;
+            background: #d4edda;
             border-radius: 10px;
-            border: 1.5px solid #d1d5db;
+            border: 1.5px solid rgba(46,139,54,0.3);
             min-width: 280px;
             flex: 1;
         }
@@ -1932,9 +1954,11 @@
 
             // ── 1. Filtrar: solo válidos + rango de fechas ──────────────────
             const porFecha = appState.ventasData.filter(v => {
-                const val = (v['Validez']||'').toLowerCase();
-                // Excluir registros explícitamente inválidos; si el campo está vacío, incluir
-                if (val && !val.includes('valid')) return false;
+                const val = (v['Validez'] || '').toString().trim().toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // quitar acentos
+                // Excluir solo si dice explícitamente "invalido", "cancelado", "eliminado"
+                const invalidos = ['invalido','cancelado','eliminado','no valido','inválido'];
+                if (val && invalidos.some(x => val.includes(x))) return false;
                 const fechaRaw = v['Fecha Ef-Venta'] || v['Fecha Venta'];
                 const fechaObj = parseFecha(fechaRaw);
                 if (!fechaObj) return false;
@@ -2714,7 +2738,7 @@
                     plugins:{
                         legend:{
                             display:true, position:'top',
-                            labels:{ color:'#374151', font:{size:11}, padding:14, usePointStyle:true },
+                            labels:{ color:'#1a4a1e', font:{size:11}, padding:14, usePointStyle:true },
                             onClick:(evt,item,legend)=>{
                                 const meta=legend.chart.getDatasetMeta(item.datasetIndex);
                                 meta.hidden = meta.hidden===null ? true : !meta.hidden;
@@ -2732,9 +2756,9 @@
                         }
                     },
                     scales:{
-                        x:{ grid:{color:'#f3f4f6'}, ticks:{color:'#374151',maxRotation:45,font:{size:10}} },
-                        y:{ beginAtZero:true, grid:{color:'#f3f4f6'},
-                            ticks:{color:'#374151', callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'k':v)} }
+                        x:{ grid:{color:'rgba(0,0,0,0.06)'}, ticks:{color:'#2e4a30',maxRotation:45,font:{size:10}} },
+                        y:{ beginAtZero:true, grid:{color:'rgba(0,0,0,0.06)'},
+                            ticks:{color:'#2e4a30', callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'k':v)} }
                     }
                 }
             });
@@ -3581,9 +3605,9 @@
                     interaction: { mode: 'index', intersect: false },
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { ticks: { color: '#374151', maxRotation: 45, font: { size: 10 } }, grid: { color: '#f3f4f6' } },
-                        y: { ticks: { color: '#374151', callback: v => '$'+v.toLocaleString('es-MX',{maximumFractionDigits:0}) }, grid: { color: '#f3f4f6' } },
-                        y2: { position: 'right', ticks: { color: '#FFC107', font: { size: 10 } }, grid: { display: false } }
+                        x: { ticks: { color: '#2e4a30', maxRotation: 45, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.07)' } },
+                        y: { ticks: { color: '#2e4a30', callback: v => '$'+v.toLocaleString('es-MX',{maximumFractionDigits:0}) }, grid: { color: 'rgba(0,0,0,0.07)' } },
+                        y2: { position: 'right', ticks: { color: '#b07d00', font: { size: 10 } }, grid: { display: false } }
                     }
                 }
             });
@@ -3632,6 +3656,12 @@
 
         window.onload = () => {
             console.log('🚀 Iniciando Hospital del Móvil Dashboard...');
+
+            // Chart.js: color de texto por defecto oscuro (tarjetas tienen fondo claro)
+            if (window.Chart) {
+                Chart.defaults.color = '#2e4a30';
+                Chart.defaults.backgroundColor = 'transparent';
+            }
             
             // Activar la sección de Ventas por defecto
             const ventasHeader = document.querySelector('.nav-section-header');
