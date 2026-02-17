@@ -1503,21 +1503,48 @@
         }
 
         // Función para cargar datos desde una URL de Google Sheets publicada como CSV
+        // Proxies CORS disponibles (se intentan en orden si el anterior falla)
+        const CORS_PROXIES = [
+            url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            url => `https://proxy.cors.sh/${url}`,
+        ];
+
+        async function fetchWithCors(url) {
+            // 1. Intentar directo (funciona en servidores web o si el navegador lo permite)
+            try {
+                const r = await fetch(url, { mode: 'cors', cache: 'no-store' });
+                if (r.ok) return r;
+            } catch(_) { /* CORS bloqueado — continuar con proxies */ }
+
+            // 2. Intentar cada proxy en orden
+            for (const proxyFn of CORS_PROXIES) {
+                try {
+                    const proxyUrl = proxyFn(url);
+                    console.log(`🔄 Usando proxy: ${proxyUrl.split('?')[0]}...`);
+                    const r = await fetch(proxyUrl, { cache: 'no-store' });
+                    if (r.ok) return r;
+                } catch(_) { /* Probar siguiente proxy */ }
+            }
+
+            throw new Error('No se pudo cargar: todos los proxies fallaron');
+        }
+
         async function loadSheetData(url, tabName) {
             try {
                 console.log(`📥 Cargando ${tabName}...`);
                 
-                // Petición directa (sin proxy, funciona porque estamos en localhost)
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
-                }
-
+                const response = await fetchWithCors(url);
                 const csvText = await response.text();
                 
+                // Detectar respuesta de proxy allorigins (envuelve en JSON)
+                let csv = csvText;
+                if (csvText.trim().startsWith('{"contents":')) {
+                    try { csv = JSON.parse(csvText).contents; } catch(_) {}
+                }
+
                 return new Promise((resolve, reject) => {
-                    Papa.parse(csvText, {
+                    Papa.parse(csv, {
                         header: true,
                         dynamicTyping: true,
                         skipEmptyLines: true,
@@ -1525,9 +1552,7 @@
                             console.log(`✅ ${tabName}: ${results.data.length} registros cargados`);
                             resolve(results.data);
                         },
-                        error: (error) => {
-                            reject(error);
-                        }
+                        error: (error) => reject(error)
                     });
                 });
             } catch (error) {
@@ -3052,4 +3077,569 @@
 
         // ── Tabla por dimensión ──────────────────────────────────────────
         const SRV_DIMS = {
-            dispositivo: { label:'🖥️ Dispositivo', fn:s
+            dispositivo: { label:'🖥️ Dispositivo', fn:srvDispositivo },
+            marca:       { label:'®️ Marca',        fn:srvMarca },
+            modelo:      { label:'📱 Modelo',       fn:srvModelo },
+            tipoSol:     { label:'1️⃣ Tipo Solicitud',fn:srvTipoSol },
+            tipoSrv:     { label:'⚙️ Tipo Servicio', fn:srvTipoSrv },
+            resultado:   { label:'✅ Resultado',    fn:srvResultado },
+            debidoA:     { label:'📌 Debido A',     fn:srvDebidoA }
+        };
+
+        function switchSrvDim(dim) {
+            srvState.dim = dim;
+            document.querySelectorAll('.srv-dim-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById('btn-srvdim-'+dim);
+            if (btn) btn.classList.add('active');
+            buildSrvDimTable(getServiciosFiltered(), dim);
+        }
+
+        function buildSrvDimTable(data, dim) {
+            const tbl = document.getElementById('srv-dim-table'); if(!tbl) return;
+            const cfg = SRV_DIMS[dim] || SRV_DIMS.dispositivo;
+
+            // Agrupar
+            const groups = {};
+            data.forEach(s => {
+                const key = cfg.fn(s) || '(Sin definir)';
+                if (!groups[key]) groups[key] = { count:0, precio:0, kpis:[], entregas:[], resultados:{}, sin:0 };
+                const g = groups[key];
+                g.count++;
+                g.precio += srvPrecio(s);
+                const kp = srvKpiDiag(s);
+                if (kp !== null) g.kpis.push(kp);
+                const res = srvResultado(s);
+                g.resultados[res] = (g.resultados[res]||0)+1;
+                if (/sin repar|no repar|irrepar/i.test(res)) g.sin++;
+                const fr=srvFecha(s), fv=srvFechaVenta(s);
+                if (fr&&fv) g.entregas.push(Math.max(0,Math.round((fv-fr)/(1000*60*60*24))));
+            });
+
+            const sorted = Object.entries(groups).sort((a,b)=>b[1].count-a[1].count);
+            const kpiCol = v => v<=1?'var(--neon-green)':v<=3?'var(--neon-orange)':'#ef4444';
+
+            tbl.innerHTML = `
+            <thead><tr style="color:#4a0000;background:#f8f9fa;position:sticky;top:0;z-index:2;">
+                <th style="padding:6px 10px;text-align:left;">${cfg.label}</th>
+                <th style="padding:6px 10px;text-align:right;">📋 Qty</th>
+                <th style="padding:6px 10px;text-align:right;">💲 P.Servicio Total</th>
+                <th style="padding:6px 10px;text-align:right;">💲 Precio Prom.</th>
+                <th style="padding:6px 10px;text-align:right;">🎯 KPI Diag.</th>
+                <th style="padding:6px 10px;text-align:right;">🚚 T.Entrega</th>
+                <th style="padding:6px 10px;text-align:right;">✅ Reparados</th>
+                <th style="padding:6px 10px;text-align:right;">🔴 Sin Rep.</th>
+                <th style="padding:6px 10px;text-align:left;">📊 Top Resultado</th>
+            </tr></thead>
+            <tbody>${sorted.map(([key,g])=>{
+                const pProm  = g.count ? g.precio/g.count : 0;
+                const kpiAvg = g.kpis.length ? g.kpis.reduce((a,b)=>a+b,0)/g.kpis.length : null;
+                const entAvg = g.entregas.length ? g.entregas.reduce((a,b)=>a+b,0)/g.entregas.length : null;
+                const repOk  = Object.entries(g.resultados).filter(([k])=>/repar|exitoso|completo/i.test(k)).reduce((a,[,v])=>a+v,0);
+                const topRes = Object.entries(g.resultados).sort((a,b)=>b[1]-a[1])[0];
+                const pctSin = g.count ? Math.round(g.sin/g.count*100) : 0;
+                return `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:5px 10px;font-weight:500;">${key}</td>
+                    <td style="padding:5px 10px;text-align:right;color:var(--neon-blue);">${g.count}</td>
+                    <td style="padding:5px 10px;text-align:right;color:var(--neon-green);">${formatCurrency(g.precio)}</td>
+                    <td style="padding:5px 10px;text-align:right;color:var(--neon-green);">${formatCurrency(pProm)}</td>
+                    <td style="padding:5px 10px;text-align:right;font-weight:bold;color:${kpiAvg!==null?kpiCol(kpiAvg):'inherit'};">${kpiAvg!==null?kpiAvg.toFixed(1)+' d':'—'}</td>
+                    <td style="padding:5px 10px;text-align:right;color:var(--neon-lila);">${entAvg!==null?entAvg.toFixed(1)+' d':'—'}</td>
+                    <td style="padding:5px 10px;text-align:right;color:var(--neon-green);">${repOk}</td>
+                    <td style="padding:5px 10px;text-align:right;color:${pctSin>30?'#ef4444':'var(--text-mute)'};">${g.sin} (${pctSin}%)</td>
+                    <td style="padding:5px 10px;font-size:11px;color:var(--text-mute);">${topRes?`${topRes[0]} (${topRes[1]})`:'—'}</td>
+                </tr>`;
+            }).join('')}</tbody>`;
+        }
+
+        // ── Tablero de Folios Recepción ──────────────────────────────────
+        function buildFoliosBoard() {
+            const tbl = document.getElementById('folios-board-table'); if(!tbl) return;
+            const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+            // Usar TODOS los servicios (no filtrados por fecha para ver histórico)
+            const allSrv = appState.serviciosData || [];
+
+            const rows = allSrv.map(s => {
+                const folio    = srvFolioRec(s);
+                const estatus  = srvEstatus(s);  // Abierto / Cerrado
+                const validez  = srvValidez(s);
+                const fEntrega = srvFechaEntrega(s);
+                const fRec     = srvFecha(s);
+                const fVenta   = srvFechaVenta(s);
+
+                // Vigencia: comparar hoy vs fecha entrega diagnóstico
+                let vigencia = 'Sin fecha';
+                let diasAlerta = null;
+                if (fEntrega) {
+                    const fe = new Date(fEntrega); fe.setHours(0,0,0,0);
+                    const diffD = Math.round((hoy - fe)/(1000*60*60*24));
+                    if (diffD > 0) { vigencia = 'Vencido'; diasAlerta = diffD; }
+                    else           { vigencia = 'Vigente'; diasAlerta = diffD; }
+                }
+
+                return { s, folio, estatus, validez, vigencia, diasAlerta, fRec, fVenta, fEntrega };
+            }).filter(r => r.folio); // solo los que tienen folio
+
+            // Guardar para filtro
+            window._foliosRows = rows;
+            renderFoliosBoard(rows, srvState.folioFilter);
+        }
+
+        function filterFoliosBoard(filter, btn) {
+            srvState.folioFilter = filter;
+            document.querySelectorAll('.srv-folio-filter-btn').forEach(b=>b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            if (window._foliosRows) renderFoliosBoard(window._foliosRows, filter);
+        }
+
+        function renderFoliosBoard(rows, filter) {
+            const tbl = document.getElementById('folios-board-table'); if(!tbl) return;
+
+            let visible = rows;
+            if (filter === 'abiertos')  visible = rows.filter(r=> /abierto/i.test(r.estatus));
+            if (filter === 'vencidos')  visible = rows.filter(r=> r.vigencia === 'Vencido');
+            if (filter === 'validos')   visible = rows.filter(r=> /válido|valido|valid/i.test(r.validez));
+            if (filter === 'invalidos') visible = rows.filter(r=> /inválido|invalido|no válido/i.test(r.validez));
+
+            const cnt = document.getElementById('folios-board-count');
+            if (cnt) cnt.textContent = `${visible.length} folios`;
+
+            if (visible.length === 0) {
+                tbl.innerHTML = `<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--text-mute);">Sin folios para este filtro</td></tr>`;
+                return;
+            }
+
+            // Ordenar: vencidos primero, luego por días de alerta desc
+            visible.sort((a,b) => {
+                if (a.vigencia==='Vencido' && b.vigencia!=='Vencido') return -1;
+                if (a.vigencia!=='Vencido' && b.vigencia==='Vencido') return 1;
+                return (b.diasAlerta||0) - (a.diasAlerta||0);
+            });
+
+            const fmtDate = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'}) : '—';
+            const estiloVigencia = v =>
+                v==='Vencido' ? 'color:#ef4444;font-weight:bold;' :
+                v==='Vigente' ? 'color:var(--neon-green);' : 'color:var(--text-mute);';
+            const estiloEstatus  = e =>
+                /abierto/i.test(e) ? 'color:var(--neon-orange);font-weight:bold;' : 'color:var(--text-mute);';
+            const estiloValidez  = v =>
+                /válido|valido|valid/i.test(v) && !/inválido/i.test(v) ? 'color:var(--neon-green);' : 'color:#ef4444;';
+
+            tbl.innerHTML = `
+            <thead><tr style="color:#4a0000;background:#f8f9fa;position:sticky;top:0;z-index:2;">
+                <th style="padding:6px 10px;">📘 Folio Rec.</th>
+                <th style="padding:6px 10px;">🖥️ Dispositivo</th>
+                <th style="padding:6px 10px;">®️ Marca / Modelo</th>
+                <th style="padding:6px 10px;">1️⃣ Tipo Sol.</th>
+                <th style="padding:6px 10px;text-align:center;">✅ Validez</th>
+                <th style="padding:6px 10px;text-align:center;">🔄️ Estatus</th>
+                <th style="padding:6px 10px;text-align:center;">⌛ Vigencia</th>
+                <th style="padding:6px 10px;text-align:center;">⚠️ Alerta</th>
+                <th style="padding:6px 10px;">📅 Recepción</th>
+                <th style="padding:6px 10px;">📅 F. Entrega Diag.</th>
+            </tr></thead>
+            <tbody>${visible.map(r => {
+                const s = r.s;
+                const alertaCell = r.vigencia==='Vencido'
+                    ? `<span style="color:#ef4444;font-size:11px;font-weight:bold;">🚨 +${r.diasAlerta}d</span>`
+                    : r.diasAlerta!==null && r.diasAlerta<=0
+                        ? `<span style="color:var(--neon-orange);font-size:11px;">⏰ ${Math.abs(r.diasAlerta)}d restantes</span>`
+                        : `<span style="color:var(--text-mute);">—</span>`;
+                const rowBg = r.vigencia==='Vencido' && /abierto/i.test(r.estatus)
+                    ? 'background:rgba(239,68,68,0.06);' : '';
+                return `<tr style="border-top:1px solid rgba(255,255,255,0.05);${rowBg}">
+                    <td style="padding:5px 10px;"><span class="badge-folio badge-recep">📘${r.folio}</span></td>
+                    <td style="padding:5px 10px;">${srvDispositivo(s)||'—'}</td>
+                    <td style="padding:5px 10px;font-size:11px;">${srvMarca(s)||'—'}${srvModelo(s)?` / ${srvModelo(s)}`:''}</td>
+                    <td style="padding:5px 10px;font-size:11px;">${srvTipoSol(s)||'—'}</td>
+                    <td style="padding:5px 10px;text-align:center;${estiloValidez(r.validez)}">${r.validez||'—'}</td>
+                    <td style="padding:5px 10px;text-align:center;${estiloEstatus(r.estatus)}">${r.estatus}</td>
+                    <td style="padding:5px 10px;text-align:center;${estiloVigencia(r.vigencia)}">${r.vigencia}</td>
+                    <td style="padding:5px 10px;text-align:center;">${alertaCell}</td>
+                    <td style="padding:5px 10px;font-size:11px;color:var(--text-mute);">${fmtDate(r.fRec)}</td>
+                    <td style="padding:5px 10px;font-size:11px;color:${r.vigencia==='Vencido'?'#ef4444':'var(--text-mute)'};">${fmtDate(r.fEntrega)}</td>
+                </tr>`;
+            }).join('')}</tbody>`;
+        }
+
+
+        // ─── Toggle collapsible sections ──────────────────────────────────────
+        function toggleCollapse(bodyId, arrowId) {
+            const body  = document.getElementById(bodyId);
+            const arrow = document.getElementById(arrowId);
+            if (!body) return;
+            const closing = !body.classList.contains('collapsed');
+            body.classList.toggle('collapsed', closing);
+            if (arrow) arrow.style.transform = closing ? 'rotate(-90deg)' : '';
+        }
+
+
+        // Función helper para formatear moneda
+        function formatCurrency(value) {
+            const num = parseFloat(value) || 0;
+            return '$' + num.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Función para reconectar sheets (ahora solo refresca los datos)
+        function reconnectSheets() {
+            console.log('Reconectando con Google Sheets...');
+            loadData();
+        }
+
+        // Función para refrescar datos
+        function refreshData() {
+            loadData();
+        }
+
+        // Función para aplicar configuración
+        function applyConfig() {
+            // Guardar configuración
+            appState.config.periodo = document.getElementById('periodo').value;
+            appState.config.agregacion = document.getElementById('agregacion').value;
+            appState.config.acumulado = document.getElementById('acumulacion').value === 'acumulado';
+            
+            console.log('⚙️ APLICANDO CONFIGURACIÓN:');
+            console.log('  Periodo:', appState.config.periodo);
+            console.log('  Agregación:', appState.config.agregacion);
+            console.log('  Acumulado:', appState.config.acumulado);
+            
+            // updateVentasView llama a calcularCostoDeVentas internamente con el rango correcto
+            updateVentasView();
+            
+            alert('✅ Configuración aplicada. El dashboard ahora muestra datos de: ' + appState.config.periodo.replace('-', ' ').toUpperCase());
+        }
+
+        // Función para resetear configuración
+        function resetConfig() {
+            document.getElementById('periodo').value = 'este-mes';
+            document.getElementById('agregacion').value = 'dia';
+            document.getElementById('acumulacion').value = 'acumulado';
+            document.getElementById('metric-total-venta').checked = true;
+            document.getElementById('metric-total-pagos').checked = true;
+            document.getElementById('metric-costo-venta').checked = false;
+            document.getElementById('metric-utilidad-bruta').checked = false;
+            
+            alert('Configuración reseteada a valores por defecto');
+        }
+
+        // Inicializar al cargar la página
+        /* ═══════════════════════════════════════════════════════
+           FUNCIONES NUEVAS: DIMENSIONES, SLIDER, PERIODOS, GRÁFICAS
+        ═══════════════════════════════════════════════════════ */
+
+        // Estado de filtros de dimensiones
+        const dimState = {
+            recep: '', anticipo: '', dispositivo: [], marca: [], modelo: [],
+            resultado: [], debidoa: [], tiposol: [], subtiposol: [], tiposrv: [],
+            sliderMin: 0, sliderMetric: 'venta', // 'venta' | 'margen'
+            periodos: { actual: true, anterior: false, anio: false }
+        };
+
+        // Cerrar paneles al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dim-dropdown')) {
+                document.querySelectorAll('.dim-panel').forEach(p => p.classList.remove('open'));
+            }
+        });
+
+        function toggleDimPanel(panelId, btn) {
+            const panel = document.getElementById(panelId);
+            const isOpen = panel.classList.contains('open');
+            document.querySelectorAll('.dim-panel').forEach(p => p.classList.remove('open'));
+            if (!isOpen) panel.classList.add('open');
+        }
+
+        function applyDimFilter(dim, input) {
+            if (dim === 'recep' || dim === 'anticipo') {
+                dimState[dim] = input.value;
+            } else {
+                // checkbox multiselección
+                const val = input.closest('.dim-option').querySelector('input').value;
+                if (input.checked) {
+                    if (!dimState[dim].includes(val)) dimState[dim].push(val);
+                } else {
+                    dimState[dim] = dimState[dim].filter(v => v !== val);
+                }
+                // Marcar botón padre
+                const btn = document.getElementById('btn-dim-' + dim);
+                if (btn) btn.classList.toggle('has-selection', dimState[dim].length > 0);
+            }
+            updateVentasView();
+        }
+
+        function clearDimFilter(dim) {
+            dimState[dim] = Array.isArray(dimState[dim]) ? [] : '';
+            // desmarcar checkboxes
+            const container = document.getElementById('dim-opts-' + dim);
+            if (container) container.querySelectorAll('input').forEach(i => i.checked = false);
+            const btn = document.getElementById('btn-dim-' + dim);
+            if (btn) btn.classList.remove('has-selection');
+            updateVentasView();
+        }
+
+        function clearAllDimFilters() {
+            ['dispositivo','marca','modelo','resultado','debidoa','tiposol','subtiposol','tiposrv'].forEach(d => clearDimFilter(d));
+            dimState.recep = ''; dimState.anticipo = '';
+            document.querySelectorAll('input[name="v-recep"]')[0].checked = true;
+            document.querySelectorAll('input[name="v-anticipo"]')[0].checked = true;
+            dimState.sliderMin = 0;
+            document.getElementById('slider-min-venta').value = 0;
+            document.getElementById('label-range-min').textContent = '$0';
+            updateVentasView();
+        }
+
+        function toggleRangeMetric() {
+            const btn = document.getElementById('btn-range-toggle');
+            if (dimState.sliderMetric === 'venta') {
+                dimState.sliderMetric = 'margen';
+                btn.textContent = '💹 Margen Contrib.';
+                btn.classList.add('margen-mode');
+                btn.classList.remove('active');
+            } else {
+                dimState.sliderMetric = 'venta';
+                btn.textContent = '💲 Total Venta';
+                btn.classList.remove('margen-mode');
+            }
+            applyRangeFilter();
+        }
+
+        function applyRangeFilter() {
+            const slider = document.getElementById('slider-min-venta');
+            const pct = slider.value / 100;
+            const ventas = appState.data?.ventas || [];
+            if (!ventas.length) return;
+            const values = ventas.map(r => parseFloat((r['Total Venta'] || '').replace(/[^0-9.-]/g,'')) || 0);
+            const max = Math.max(...values);
+            dimState.sliderMin = max * pct;
+            const label = '$' + dimState.sliderMin.toLocaleString('es-MX', {maximumFractionDigits:0});
+            document.getElementById('label-range-min').textContent = label;
+            updateVentasView();
+        }
+
+        function togglePeriodo(periodo, btn) {
+            dimState.periodos[periodo] = !dimState.periodos[periodo];
+            btn.classList.toggle('on', dimState.periodos[periodo]);
+            updateVentasView();
+        }
+
+        // Función para rellenar opciones de dimensiones de forma dinámica
+        function buildDimOptions(dim, values) {
+            const container = document.getElementById('dim-opts-' + dim);
+            if (!container) return;
+            const unique = [...new Set(values.filter(v => v && v.trim()))].sort();
+            container.innerHTML = unique.map(v => `
+                <label class="dim-option">
+                    <input type="checkbox" value="${v}" onchange="applyDimFilter('${dim}', this)">
+                    ${v}
+                </label>`).join('');
+        }
+
+        // Filtrar ventas con los filtros de dimensión activos
+        function filterVentasByDim(ventas) {
+            return ventas.filter(r => {
+                const tv = parseFloat((r['Total Venta']||'').replace(/[^0-9.-]/g,''))||0;
+                const validez = (r['Validez']||'').toLowerCase();
+                if (validez && !validez.includes('valid')) return false;  // solo válidos
+                if (tv < dimState.sliderMin) return false;
+                if (dimState.recep === 'con'  && !(r['Folio##Recepción']||r['Folio Recepción']||'').trim()) return false;
+                if (dimState.recep === 'sin'  &&  (r['Folio##Recepción']||r['Folio Recepción']||'').trim()) return false;
+                if (dimState.anticipo === 'con'  && !(r['Datos##Anticipo']||r['Folio Anticipo']||r['Anticipo Recepción']||'').trim()) return false;
+                if (dimState.anticipo === 'sin'  &&  (r['Datos##Anticipo']||r['Folio Anticipo']||r['Anticipo Recepción']||'').trim()) return false;
+                if (dimState.dispositivo.length && !dimState.dispositivo.includes(r['Dispositivo']||'')) return false;
+                if (dimState.marca.length && !dimState.marca.includes(r['Marca']||'')) return false;
+                if (dimState.modelo.length && !dimState.modelo.includes(r['Modelo_Ver']||r['Modelo']||'')) return false;
+                if (dimState.resultado.length && !dimState.resultado.includes(r['Resultado del Servicio']||r['Resultado']||'')) return false;
+                if (dimState.debidoa.length && !dimState.debidoa.includes(r['Debido a']||'')) return false;
+                if (dimState.tiposol.length && !dimState.tiposol.includes(r['Tipo Solicitud']||'')) return false;
+                if (dimState.subtiposol.length && !dimState.subtiposol.includes(r['Subtipo Solicitud']||'')) return false;
+                if (dimState.tiposrv.length && !dimState.tiposrv.includes(r['Tipo Servicio']||r['TipoServicio']||'')) return false;
+                return true;
+            });
+        }
+
+        // Gráfica de anillo triple
+        let chartDonutTriple = null;
+        function updateDonutTriple(filtered, all) {
+            const ctx = document.getElementById('chart-donut-triple');
+            if (!ctx) return;
+
+            const totalAll    = all.reduce((s,r)=> s + (parseFloat((r['Total Venta']||'').replace(/[^0-9.-]/g,''))||0), 0);
+            const totalFil    = filtered.reduce((s,r)=> s + (parseFloat((r['Total Venta']||'').replace(/[^0-9.-]/g,''))||0), 0);
+            const totalRest   = totalAll - totalFil;
+
+            // Margen de contribución estimado = Precio Venta - Monto (desde Egresos relacionados)
+            // Por ahora usamos 30% como proxy hasta tener el join completo
+            const margenFil   = totalFil * 0.3;
+            const margenRest  = totalAll * 0.3 - margenFil;
+
+            const foliosAll   = all.length;
+            const foliosFil   = filtered.length;
+            const foliosRest  = foliosAll - foliosFil;
+
+            const pctV = totalAll > 0 ? Math.round(totalFil/totalAll*100) : 0;
+            const pctM = totalAll > 0 ? Math.round(margenFil/(totalAll*0.3)*100) : 0;
+            const pctF = foliosAll > 0 ? Math.round(foliosFil/foliosAll*100) : 0;
+
+            // Leyenda
+            document.getElementById('donut-lbl-ventas').textContent = `Total Ventas: ${pctV}% · $${totalFil.toLocaleString('es-MX',{maximumFractionDigits:0})}`;
+            document.getElementById('donut-lbl-margen').textContent = `Margen Contrib.: ${pctM}% · $${margenFil.toLocaleString('es-MX',{maximumFractionDigits:0})}`;
+            document.getElementById('donut-lbl-folios').textContent = `Folios: ${pctF}% · ${foliosFil} de ${foliosAll}`;
+
+            const data = {
+                datasets: [
+                    { // exterior: Total Ventas
+                        data: [totalFil, totalRest],
+                        backgroundColor: ['#4CAF50','#e5e7eb'],
+                        borderWidth: 0, radius: '100%', cutout: '70%'
+                    },
+                    { // medio: Margen
+                        data: [margenFil, margenRest],
+                        backgroundColor: ['#2196F3','#e5e7eb'],
+                        borderWidth: 0, radius: '68%', cutout: '52%'
+                    },
+                    { // interior: Folios
+                        data: [foliosFil, foliosRest],
+                        backgroundColor: ['#FFC107','#e5e7eb'],
+                        borderWidth: 0, radius: '48%', cutout: '34%'
+                    }
+                ]
+            };
+            if (chartDonutTriple) { chartDonutTriple.data = data; chartDonutTriple.update(); return; }
+            chartDonutTriple = new Chart(ctx, {
+                type: 'doughnut',
+                data,
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const labels = ['💲 Total Ventas', '💹 Margen', '📄 Folios'];
+                                const vals   = [[totalFil,totalRest],[margenFil,margenRest],[foliosFil,foliosRest]];
+                                const ds = ctx.datasetIndex; const idx = ctx.dataIndex;
+                                const v = vals[ds][idx];
+                                return `${labels[ds]} ${idx===0?'(selección)':'(resto)'}: ${typeof v==='number'&&v>100?'$'+v.toLocaleString('es-MX',{maximumFractionDigits:0}):v}`;
+                            }
+                        }
+                    }}
+                }
+            });
+        }
+
+        // Gráfica mixta por dimensión
+        let chartMixed = null;
+        function updateMixedChart(filtered) {
+            const ctx = document.getElementById('chart-mixed-dim');
+            if (!ctx) return;
+            if (!filtered) {
+                const ventas = appState.ventasData || [];
+                filtered = filterVentasByDim(ventas);
+            }
+            const dim = document.getElementById('dim-axis-selector')?.value || 'fecha';
+
+            const dimMap = {
+                'fecha': r => (r['Fecha ef-Venta']||r['Fecha Venta']||'').substring(0,10),
+                'recep': r => (r['Folio##Recepción']||r['Folio Recepción']||'').trim() ? 'Con Servicio' : 'Sin Servicio',
+                'anticipo': r => (r['Datos##Anticipo']||r['Folio Anticipo']||'').trim() ? 'Con Anticipo' : 'Sin Anticipo',
+                'dispositivo': r => r['Dispositivo']||'N/D',
+                'marca': r => r['Marca']||'N/D',
+                'modelo': r => r['Modelo_Ver']||r['Modelo']||'N/D',
+                'resultado': r => r['Resultado del Servicio']||r['Resultado']||'N/D',
+                'debidoa': r => r['Debido a']||'N/D',
+                'tiposol': r => r['Tipo Solicitud']||'N/D',
+                'subtiposol': r => r['Subtipo Solicitud']||'N/D',
+                'tiposrv': r => r['Tipo Servicio']||r['TipoServicio']||'N/D',
+            };
+            const getKey = dimMap[dim] || dimMap['fecha'];
+            const grouped = {};
+            filtered.forEach(r => {
+                const k = getKey(r);
+                if (!grouped[k]) grouped[k] = { venta: 0, margen: 0, folios: 0 };
+                const tv = parseFloat((r['Total Venta']||'').replace(/[^0-9.-]/g,''))||0;
+                grouped[k].venta  += tv;
+                grouped[k].margen += tv * 0.3;
+                grouped[k].folios += 1;
+            });
+            const labels = Object.keys(grouped).sort();
+            const dataVenta  = labels.map(k => grouped[k].venta);
+            const dataMargen = labels.map(k => grouped[k].margen);
+            const dataFolios = labels.map(k => grouped[k].folios);
+
+            const datasets = [
+                { type: 'bar', label: '💹 Margen Contrib.', data: dataMargen, backgroundColor: 'rgba(33,150,243,0.65)', borderColor: '#2196F3', borderWidth: 1, order: 2, yAxisID: 'y' },
+                { type: 'line', label: '📄 Nº Folios', data: dataFolios, borderColor: '#FFC107', backgroundColor: 'rgba(255,193,7,0.15)', borderWidth: 2.5, pointRadius: 4, fill: false, order: 1, yAxisID: 'y2' },
+                { type: 'line', label: '💲 Total Venta', data: dataVenta, borderColor: '#4CAF50', backgroundColor: 'rgba(76,175,80,0.12)', borderWidth: 2, fill: true, order: 3, yAxisID: 'y' },
+            ];
+            if (chartMixed) { chartMixed.data.labels = labels; chartMixed.data.datasets = datasets; chartMixed.update(); return; }
+            chartMixed = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#374151', maxRotation: 45, font: { size: 10 } }, grid: { color: '#f3f4f6' } },
+                        y: { ticks: { color: '#374151', callback: v => '$'+v.toLocaleString('es-MX',{maximumFractionDigits:0}) }, grid: { color: '#f3f4f6' } },
+                        y2: { position: 'right', ticks: { color: '#FFC107', font: { size: 10 } }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // Inyectar periodos anteriores en la gráfica principal de ventas
+        const _origUpdateVentas = typeof updateVentasView !== 'undefined' ? updateVentasView : null;
+
+        function injectPeriodDatasets(chart, allVentas, periodoActual) {
+            if (!chart) return;
+            // Remover datasets de periodos si existen
+            chart.data.datasets = chart.data.datasets.filter(d => !d._isPeriodo);
+            if (dimState.periodos.anterior || dimState.periodos.anio) {
+                // calcular rangos según periodo seleccionado (simplificado: 30 días atrás y 365 días atrás)
+                const now = new Date();
+                const msDay = 86400000;
+                const range = 30 * msDay; // se puede ajustar según periodo config
+
+                const processVentas = (offsetMs) => {
+                    const start = new Date(now.getTime() - offsetMs - range);
+                    const end   = new Date(now.getTime() - offsetMs);
+                    const f = allVentas.filter(r => {
+                        const d = new Date(r['Fecha ef-Venta']||r['Fecha Venta']||'');
+                        return d >= start && d <= end;
+                    });
+                    const grouped = {};
+                    f.forEach(r => {
+                        const k = (r['Fecha ef-Venta']||r['Fecha Venta']||'').substring(0,10);
+                        grouped[k] = (grouped[k]||0) + (parseFloat((r['Total Venta']||'').replace(/[^0-9.-]/g,''))||0);
+                    });
+                    return chart.data.labels.map((lbl,i) => {
+                        // usar el mismo índice del label actual mapeado a la fecha desplazada
+                        const k = Object.keys(grouped).sort()[i];
+                        return k ? grouped[k] : null;
+                    });
+                };
+                if (dimState.periodos.anterior) {
+                    chart.data.datasets.push({ _isPeriodo: true, label: '● Periodo anterior', data: processVentas(range), borderColor: '#9C27B0', borderWidth: 1.5, borderDash: [5,4], pointRadius: 2, fill: false, tension: 0.3 });
+                }
+                if (dimState.periodos.anio) {
+                    chart.data.datasets.push({ _isPeriodo: true, label: '● Mismo mes año ant.', data: processVentas(365*msDay), borderColor: '#2196F3', borderWidth: 1.5, borderDash: [3,3], pointRadius: 2, fill: false, tension: 0.3 });
+                }
+                chart.update();
+            }
+        }
+
+        window.onload = () => {
+            console.log('🚀 Iniciando Hospital del Móvil Dashboard...');
+            
+            // Activar la sección de Ventas por defecto
+            const ventasHeader = document.querySelector('.nav-section-header');
+            if (ventasHeader) ventasHeader.classList.add('active');
+            
+            loadData();
+        };
+    </script>
+</body>
+
+</html>
