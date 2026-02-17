@@ -1,0 +1,103 @@
+# CHANGELOG v3 — HDM Dashboard
+## Fecha: 2026-02-16
+
+---
+
+## Cambios implementados
+
+### 1. Fondo claro para área de análisis
+- `main-content` → `background: #f0f2f5` (gris muy claro)
+- `glass-card` → `background: #ffffff`, sombra ligera, sin backdrop-filter
+- Tablas: `th` → `background: #f8f9fa`, `color: #b22222`; filas hover `#fef2f2`
+- Headers sticky de tablas en Servicios/Anticipos: fondo claro, color rojo oscuro
+- El sidebar/menú acordeón mantiene su fondo oscuro (branding)
+
+### 2. Eliminación del filtro por Validez
+- Se quitaron los botones "Todas / Ninguna" de Validez de la sección Ventas
+- El filtrado ahora es automático: **solo se muestran registros válidos**
+- Lógica: `(validez campo vacío) OR (valor contiene "valid")`
+
+### 3. Barra horizontal de dimensiones (filtros activos)
+Cada dimensión es un botón expandible con dropdown de opciones (checkboxes multiselección):
+- 📘 **Recepción** — radio: Todo / Con Servicio / Sin Servicio
+- 📒 **Anticipo** — radio: Todo / Con Anticipo / Sin Anticipo
+- 🖥️ **Dispositivo** — multiselección de valores únicos
+- ®️ **Marca** — multiselección
+- 📱 **Modelo** — multiselección
+- 🏁 **Resultado** — multiselección
+- 👤 **Debido a** — multiselección
+- 1️⃣ **Tipo Solicitud** — multiselección
+- 2️⃣ **Subtipo Solicitud** — multiselección
+- ⚙️ **Tipo Servicio** — multiselección
+- Botón **✕ Limpiar todo** que resetea todos los filtros
+- Contador de registros activos `N registros (de M)`
+
+### 4. Barra deslizante de rango con toggle de métrica
+- Slider horizontal (estilo volumen de audio) que filtra por mínimo de Total Venta o Margen de Contribución
+- Toggle que alterna entre **💲 Total Venta** y **💹 Margen Contrib.**
+- El valor mínimo se muestra en tiempo real conforme el usuario mueve el slider
+
+### 5. Toggles de periodos en la gráfica principal
+Tres botones tipo pill activables/desactivables:
+- **● Este periodo** (verde) — siempre activo por defecto
+- **● Periodo anterior** (morado) — añade línea punteada al chart
+- **● Mismo mes año ant.** (azul) — añade segunda línea punteada
+
+Implementación: `injectPeriodDatasets()` añade datasets con `_isPeriodo: true` al chart existente.
+
+### 6. Anillo triple de distribución
+Canvas `chart-donut-triple` — Doughnut de 3 anillos concéntricos:
+- **Exterior (verde)**: Total Ventas selección vs resto
+- **Medio (azul)**: Margen de Contribución selección vs resto
+- **Interior (amarillo)**: Cantidad de Folios selección vs resto
+- Cada anillo muestra porcentaje y valor absoluto en leyenda debajo
+
+### 7. Gráfica mixta por dimensión
+Canvas `chart-mixed-dim` — Gráfica combinada Chart.js:
+- **Área (verde semitransparente)**: Total Venta
+- **Barras (azul)**: Margen de Contribución
+- **Línea (amarillo)**: Número de Folios (eje Y secundario derecho)
+- Dropdown **Eje X** con todas las dimensiones del menú superior
+- Se actualiza automáticamente con cada cambio de filtro o dimensión
+
+### 8. Leyenda informativa fuera de tarjetas
+La nota `"Basado en tendencia lineal..."` se movió debajo de la fila de tarjetas de indicadores, en un bloque `.leyenda-nota` de ancho completo (span-12).
+
+### 9. Colores de tarjetas indicadores actualizados para fondo claro
+- Total Ventas → borde superior verde `#4CAF50`
+- Costo Ventas / Costo Total → naranja `#FF9800`
+- Utilidad Bruta → azul `#2196F3`
+- Total Pagos / Extracciones / Otros Ingresos → morado `#9C27B0`
+- Ticket Promedio → verde `#4CAF50`
+
+### 10. Colores de gráfica principal adaptados a fondo claro
+- Ejes X e Y: `color: '#374151'` (gris oscuro)
+- Grid lines: `color: '#f3f4f6'` (gris muy suave)
+- Leyenda: `color: '#374151'`
+
+---
+
+## Archivos de seguridad
+| Versión | Archivo | Descripción |
+|---------|---------|-------------|
+| v1 | `index_v1_original.html` | Estado inicial del proyecto |
+| v2 | `index_v2_menu_acordeon.html` | Menú horizontal acordeón + gráfica ancho completo |
+| v3 | `index.html` (actual) | Fondo claro + barra filtros + anillo triple + gráfica mixta |
+
+---
+
+## Funciones JS añadidas
+| Función | Descripción |
+|---------|-------------|
+| `toggleDimPanel(panelId, btn)` | Abre/cierra dropdown de dimensión |
+| `applyDimFilter(dim, input)` | Aplica selección de un filtro de dimensión |
+| `clearDimFilter(dim)` | Limpia selección de una dimensión |
+| `clearAllDimFilters()` | Resetea todos los filtros dimensionales |
+| `toggleRangeMetric()` | Alterna slider entre Total Venta y Margen |
+| `applyRangeFilter()` | Aplica filtro mínimo del slider |
+| `togglePeriodo(periodo, btn)` | Activa/desactiva línea de periodo en gráfica |
+| `filterVentasByDim(ventas)` | Filtra array de ventas con todos los dimState activos |
+| `buildDimOptions(dim, values)` | Puebla checkboxes de un dropdown de dimensión |
+| `updateDonutTriple(filtered, all)` | Dibuja/actualiza el anillo triple |
+| `updateMixedChart(filtered?)` | Dibuja/actualiza la gráfica mixta |
+| `injectPeriodDatasets(chart, all, rango)` | Añade líneas de periodos anteriores al chart principal |
