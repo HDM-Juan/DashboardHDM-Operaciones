@@ -1644,9 +1644,9 @@
                     connectionStatus.style.display = 'none';
                 }, 5000);
 
-                // Actualizar timestamp
-                document.getElementById('last-update').textContent = 
-                    `Actualizado: ${new Date().toLocaleString('es-MX')}`;
+                // Actualizar timestamp (comentado - elemento no existe)
+                // document.getElementById('last-update').textContent = 
+                //     `Actualizado: ${new Date().toLocaleString('es-MX')}`;
 
                 // Actualizar todas las vistas
                 updateVentasView();
@@ -3474,11 +3474,23 @@
 
         // Filtrar ventas con los filtros de dimensión activos
         function filterVentasByDim(ventas) {
-            return ventas.filter(r => {
+            console.log('🔍 filterVentasByDim | entrada:', ventas.length, 'registros');
+            console.log('📊 dimState:', JSON.stringify(dimState));
+            
+            const result = ventas.filter(r => {
+                // Validez: incluir TODO excepto explícitamente inválido
+                const validez = (r['Validez'] || '').toString().trim().toLowerCase();
+                if (validez.includes('invalid') || validez.includes('invalido') || 
+                    validez.includes('inválido') || validez.includes('cancelado') || 
+                    validez.includes('eliminado') || validez.includes('cancel')) {
+                    return false;
+                }
+                
+                // Slider de valor mínimo
                 const tv = parseFloat((r['Total Venta']||'').replace(/[^0-9.-]/g,''))||0;
-                const validez = (r['Validez']||'').toLowerCase();
-                if (validez && !validez.includes('valid')) return false;  // solo válidos
                 if (tv < dimState.sliderMin) return false;
+                
+                // Filtros de dimensiones
                 if (dimState.recep === 'con'  && !(r['Folio##Recepción']||r['Folio Recepción']||'').trim()) return false;
                 if (dimState.recep === 'sin'  &&  (r['Folio##Recepción']||r['Folio Recepción']||'').trim()) return false;
                 if (dimState.anticipo === 'con'  && !(r['Datos##Anticipo']||r['Folio Anticipo']||r['Anticipo Recepción']||'').trim()) return false;
@@ -3493,6 +3505,9 @@
                 if (dimState.tiposrv.length && !dimState.tiposrv.includes(r['Tipo Servicio']||r['TipoServicio']||'')) return false;
                 return true;
             });
+            
+            console.log('✅ filterVentasByDim | salida:', result.length, 'registros');
+            return result;
         }
 
         // Gráfica de anillo triple
