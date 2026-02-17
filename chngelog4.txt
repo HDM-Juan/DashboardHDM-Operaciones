@@ -1,0 +1,103 @@
+# CHANGELOG v4 — HDM Dashboard
+## Fecha: 2026-02-17
+
+---
+
+## Cambios implementados
+
+### 1. Header compacto horizontal (una sola fila)
+**ANTES:** Header ocupaba ~160px de altura con logo grande arriba y menú abajo
+**AHORA:** Header de ~70px con:
+- **Izquierda:** Logo circular 50x50px + título "Hospital del Móvil - Dashboard de Operaciones" + subtítulo "Zona Rosa"
+- **Derecha:** Menú horizontal alineado al piso con 6 secciones:
+  - 📗 Ventas
+  - 📘 Servicios
+  - 📒 Anticipos
+  - 💰 Compras
+  - 💸 Gastos
+  - ⚙️ Config (nuevo - incluye Configuración en el menú)
+
+**CSS modificado:**
+- `.sidebar`: `flex-direction: row`, `align-items: flex-end`, `min-height: 70px`
+- `.logo-area`: `width: 50px`, `height: 50px`
+- `.nav-section-header`: `padding: 8px 16px`, `font-size: 13px`
+- Logo y marca centrados verticalmente, menú pegado al piso
+
+### 2. Corrección filtro de Validez
+**Problema:** El filtro usaba `.normalize('NFD')` que no todos los navegadores soportan y tenía un bug: `parseFecha(fechaObj)` en vez de `parseFecha(fechaRaw)`
+
+**Solución:**
+```javascript
+// Filtro MUY permisivo: incluir TODO excepto explícitamente inválido
+const val = (v['Validez'] || '').toString().trim().toLowerCase();
+if (val.includes('invalid') || val.includes('invalido') || 
+    val.includes('inválido') || val.includes('cancelado') || 
+    val.includes('eliminado') || val.includes('cancel')) {
+    return false;
+}
+```
+
+### 3. Logs de debug añadidos
+Para diagnosticar problemas de carga de datos:
+- `updateVentasView`: logs al inicio, después de filtro de fecha, después de filtro de dimensiones
+- Muestra cantidad de registros en cada etapa del pipeline de filtrado
+
+**Ejemplo de salida esperada:**
+```
+🔄 updateVentasView iniciando...
+📊 appState.ventasData: 150 registros
+📅 Periodo: este-mes → 2026-02-01 a 2026-02-28
+✅ Después filtro fecha+validez: 45 registros
+✅ Después filtro dimensiones: 45 registros
+```
+
+---
+
+## Instrucciones de diagnóstico
+
+Si las tablas/indicadores/gráficas no cargan:
+
+1. **Abrir consola del navegador** (F12)
+2. **Buscar errores** en rojo
+3. **Verificar logs de carga:**
+   - `📥 Cargando Ventas...`
+   - `✅ Ventas: N registros cargados`
+4. **Verificar logs de updateVentasView:**
+   - Debe mostrar cantidad de registros en cada etapa
+   - Si "Después filtro fecha+validez: 0" → problema con columnas de fecha o validez
+   - Si "Después filtro dimensiones: 0" → problema con filtros activos
+
+5. **Verificar datos en consola:**
+   ```javascript
+   appState.ventasData  // Ver datos cargados
+   appState.ventasFiltradas  // Ver datos después de filtros
+   ```
+
+---
+
+## Estructura visual actual
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ [🔴] Hospital del Móvil     📗Ventas 📘Servicios 📒Anticipos│
+│      Dashboard - Zona Rosa  💰Compras 💸Gastos ⚙️Config     │ ← 70px
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌───────────┐ ┌───────────┐ ┌───────────┐                │
+│  │ Tarjeta 1 │ │ Tarjeta 2 │ │ Tarjeta 3 │   Fondo verde  │
+│  └───────────┘ └───────────┘ └───────────┘   claro        │
+│                                                             │
+│  ┌───────────────────────────────────────┐                 │
+│  │          Gráfica Principal            │                 │
+│  └───────────────────────────────────────┘                 │
+│                                              Fondo oscuro   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Archivos
+- `index.html` (3,686 líneas) - Dashboard completo con cambios v4
+- Header compacto horizontal
+- Filtro de validez corregido
+- Logs de debug para diagnóstico
