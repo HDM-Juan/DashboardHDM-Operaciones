@@ -205,313 +205,293 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
+        .dashboard-section { display: none; animation: fadeIn 0.4s ease; }
+        .dashboard-section.active-section { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        /* ═══════════════════════════════════════════════════════
+           FONDO CLARO PARA ÁREA DE ANÁLISIS
+        ═══════════════════════════════════════════════════════ */
         .main-content {
-            padding: 30px;
+            padding: 20px 30px 30px;
             overflow-y: auto;
             position: relative;
-        }
-
-        .header-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--glass-bg);
-            padding: 15px 25px;
-            border-radius: 15px;
-            border: 1px solid var(--glass-border);
-            margin-bottom: 30px;
-            backdrop-filter: blur(8px);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .config-section {
-            background: var(--glass-bg);
-            padding: 20px;
-            border-radius: 15px;
-            border: 1px solid var(--glass-border);
-            margin-bottom: 30px;
-            backdrop-filter: blur(8px);
-        }
-
-        .config-row {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .config-item {
+            background: #f0f2f5;
             flex: 1;
-            min-width: 200px;
         }
 
-        .config-item label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--text-mute);
-            font-size: 14px;
-        }
-
-        .config-item select,
-        .config-item input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: 1px solid var(--glass-border);
-            padding: 8px 15px;
-            border-radius: 8px;
-            outline: none;
-        }
-
-        .btn-reset {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .btn-reset:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
-        }
-
-        .dashboard-section {
-            display: none;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .dashboard-section.active-section {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            gap: 20px;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
+        /* Sobreescribir glass-card para zona clara */
         .glass-card {
-            background: rgba(40, 5, 10, 0.25);
-            border: 1px solid rgba(178, 34, 34, 0.25);
+            background: #ffffff;
+            border: 1px solid rgba(178, 34, 34, 0.15);
             border-radius: 16px;
             padding: 20px;
-            backdrop-filter: blur(15px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
             position: relative;
             overflow: hidden;
-            transition: transform 0.2s, background 0.3s;
+            transition: transform 0.2s, box-shadow 0.3s;
         }
-
         .glass-card:hover {
-            transform: translateY(-5px);
-            background: rgba(40, 5, 10, 0.35);
-            border-color: rgba(178, 34, 34, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(178,34,34,0.12);
+            border-color: rgba(178, 34, 34, 0.3);
         }
-
         .card-title {
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 600;
-            margin-bottom: 15px;
-            color: var(--brand-red);
+            margin-bottom: 12px;
+            color: #4a0000;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+        }
+        .stat-value { font-size: 28px; font-weight: 700; margin: 6px 0; }
+        .stat-label  { color: #6b7280; font-size: 13px; }
+
+        /* Tablas sobre fondo claro */
+        table { width:100%; border-collapse:collapse; margin-top:10px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+        th { background: #f8f9fa; color: #b22222; font-weight: 600; }
+        tr:hover { background: #fef2f2; }
+        #ventas-main-table thead th {
+            position: sticky; top: 0; z-index: 2;
+            background: #f8f9fa;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        /* subrow */
+        .subrow-frame td {
+            border-left: 3px solid rgba(33,150,243,0.5);
+            border-bottom: 2px solid rgba(33,150,243,0.15);
+            background: #f0f7ff;
         }
 
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        .stat-label {
-            color: var(--text-mute);
-            font-size: 14px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        th {
-            background: rgba(0, 0, 0, 0.3);
-            color: var(--brand-red);
-            font-weight: 600;
-        }
-
-        tr:hover {
-            background: rgba(178, 34, 34, 0.08);
-        }
-
-        .badge-folio {
-            display: inline-block;
-            padding: 4px 12px;
+        /* ═══════════════════════════════════════════════════════
+           BARRA HORIZONTAL DE DIMENSIONES/FILTROS
+        ═══════════════════════════════════════════════════════ */
+        .dim-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 10px 16px;
+            background: #fff;
             border-radius: 12px;
+            border: 1px solid rgba(178,34,34,0.15);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .dim-dropdown {
+            position: relative;
+        }
+        .dim-btn {
+            display: flex; align-items: center; gap: 5px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1.5px solid #d1d5db;
+            background: #f9fafb;
+            color: #374151;
+            font-size: 12px; font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .dim-btn:hover, .dim-btn.has-selection {
+            border-color: #b22222;
+            background: #fef2f2;
+            color: #b22222;
+        }
+        .dim-btn .arrow-icon { font-size: 9px; }
+        .dim-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            min-width: 220px;
+            max-height: 280px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 500;
+            padding: 8px 0;
+        }
+        .dim-panel.open { display: block; }
+        .dim-option {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 14px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #374151;
+            transition: background 0.15s;
+        }
+        .dim-option:hover { background: #fef2f2; }
+        .dim-option.selected { color: #b22222; font-weight: 600; }
+        .dim-option input[type="checkbox"] { accent-color: #b22222; }
+        .dim-panel-header {
+            padding: 6px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border-bottom: 1px solid #f3f4f6;
+            margin-bottom: 4px;
+        }
+        .dim-clear-btn {
+            width: 100%; text-align: center;
+            padding: 6px;
+            font-size: 11px;
+            color: #b22222;
+            cursor: pointer;
+            border-top: 1px solid #f3f4f6;
+            margin-top: 4px;
+        }
+        .dim-clear-btn:hover { background: #fef2f2; }
+
+        /* ═══════════════════════════════════════════════════════
+           BARRA DE RANGO / SLIDER
+        ═══════════════════════════════════════════════════════ */
+        .range-bar-wrap {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 14px;
+            background: #fff;
+            border-radius: 10px;
+            border: 1.5px solid #d1d5db;
+            min-width: 280px;
+            flex: 1;
+        }
+        .range-toggle {
+            display: flex; align-items: center; gap: 5px;
+            padding: 4px 10px;
+            border-radius: 16px;
+            border: 1.5px solid #d1d5db;
+            background: #f9fafb;
+            cursor: pointer;
+            font-size: 11px; font-weight: 700;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .range-toggle.active {
+            background: #4CAF50; border-color: #4CAF50; color: #fff;
+        }
+        .range-toggle.margen-mode {
+            background: #2196F3; border-color: #2196F3; color: #fff;
+        }
+        input[type="range"].hdm-slider {
+            flex: 1;
+            accent-color: #b22222;
+            height: 4px;
+        }
+        .range-label { font-size: 11px; color: #6b7280; white-space: nowrap; }
+        .range-value { font-size: 12px; font-weight: 700; color: #b22222; min-width: 80px; text-align: right; }
+
+        /* ═══════════════════════════════════════════════════════
+           TOGGLE PERIODOS EN GRÁFICA
+        ═══════════════════════════════════════════════════════ */
+        .periodo-toggles {
+            display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+            padding: 6px 0;
+        }
+        .periodo-toggle-btn {
+            padding: 4px 12px; border-radius: 14px; font-size: 11px; font-weight: 600;
+            cursor: pointer; border: 1.5px solid; transition: all 0.2s;
+        }
+        .periodo-toggle-btn.p-actual {
+            border-color: #4CAF50; color: #4CAF50; background: rgba(76,175,80,0.08);
+        }
+        .periodo-toggle-btn.p-anterior {
+            border-color: #9C27B0; color: #9C27B0; background: rgba(156,39,176,0.08);
+        }
+        .periodo-toggle-btn.p-anio {
+            border-color: #2196F3; color: #2196F3; background: rgba(33,150,243,0.08);
+        }
+        .periodo-toggle-btn.on.p-actual  { background: #4CAF50; color: #fff; }
+        .periodo-toggle-btn.on.p-anterior { background: #9C27B0; color: #fff; }
+        .periodo-toggle-btn.on.p-anio    { background: #2196F3; color: #fff; }
+
+        /* ═══════════════════════════════════════════════════════
+           ANILLO TRIPLE + GRÁFICA MIXTA
+        ═══════════════════════════════════════════════════════ */
+        .donut-legend {
+            display: flex; flex-direction: column; gap: 6px; margin-top: 10px;
+        }
+        .donut-legend-row {
+            display: flex; align-items: center; gap: 8px; font-size: 12px;
+        }
+        .donut-dot {
+            width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+        }
+        .leyenda-nota {
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #9C27B0;
+            padding: 8px 14px;
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+
+        /* Dimensión selector en gráfica mixta */
+        .dim-axis-select {
+            background: #f9fafb;
+            border: 1.5px solid #d1d5db;
+            border-radius: 7px;
+            padding: 4px 10px;
             font-size: 12px;
             font-weight: 600;
-        }
-
-        .badge-venta {
-            background: rgba(76, 175, 80, 0.2);
-            color: var(--color-ventas);
-            border: 1px solid var(--color-ventas);
-        }
-
-        .badge-recep {
-            background: rgba(33, 150, 243, 0.2);
-            color: var(--color-servicios);
-            border: 1px solid var(--color-servicios);
-        }
-
-        .badge-anticipo {
-            background: rgba(255, 193, 7, 0.2);
-            color: var(--color-anticipos);
-            border: 1px solid var(--color-anticipos);
-        }
-
-
-        /* ── Sticky header de tabla ───────────────────────────── */
-        #ventas-main-table thead th {
-            position: sticky;
-            top: 0;
-            z-index: 2;
-            background: rgba(15,2,4,0.97);
-            backdrop-filter: blur(8px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-
-        /* ── Collapsible card body ───────────────────────────── */
-        .collapsible-header {
+            color: #374151;
             cursor: pointer;
-            user-select: none;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
-        .collapsible-header:hover { opacity: 0.85; }
-        /* ── Servicios: botones de dimensión y filtro folios ── */
+        .dim-axis-select:focus { outline: none; border-color: #b22222; }
+
+        /* Ajustes collapsible en fondo claro */
+        .collapsible-header { cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center; color: #4a0000; }
+        .collapsible-header:hover { opacity: 0.8; }
+        .collapsible-body { transition: opacity 0.2s; }
+        .collapsible-body.collapsed { display: none; }
+        .collapse-arrow { transition: transform 0.2s; font-size: 13px; color: #b22222; }
+        .collapsed-arrow { transform: rotate(-90deg); }
+
+        /* Botones servicios */
         .srv-dim-btn {
             font-size: 11px; padding: 4px 12px; border-radius: 10px; cursor: pointer;
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
-            color: var(--text-mute); transition: all 0.2s;
+            background: #f9fafb; border: 1px solid #d1d5db;
+            color: #6b7280; transition: all 0.2s;
         }
         .srv-dim-btn.active, .srv-dim-btn:hover {
-            background: rgba(33, 150, 243, 0.2);
-            border-color: rgba(33, 150, 243, 0.5);
-            color: var(--color-servicios);
+            background: rgba(33,150,243,0.1); border-color: #2196F3; color: #2196F3;
         }
         .srv-folio-filter-btn {
             font-size: 11px; padding: 4px 12px; border-radius: 10px; cursor: pointer;
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
-            color: var(--text-mute); transition: all 0.2s;
+            background: #f9fafb; border: 1px solid #d1d5db;
+            color: #6b7280; transition: all 0.2s;
         }
         .srv-folio-filter-btn.active, .srv-folio-filter-btn:hover {
-            background: rgba(156, 39, 176, 0.2);
-            border-color: rgba(156, 39, 176, 0.5);
-            color: var(--color-flujo);
+            background: rgba(156,39,176,0.1); border-color: #9C27B0; color: #9C27B0;
         }
-        #srv-cards {
-            display: contents;
-        }
-        
-                .collapsible-body { transition: opacity 0.2s; }
-        .collapsible-body.collapsed { display: none; }
-        .collapse-arrow { transition: transform 0.2s; font-size: 13px; }
-        .collapsed-arrow { transform: rotate(-90deg); }
+        #srv-cards { display: contents; }
+        .proy-value { font-size:1.4em; font-weight:700; letter-spacing:-0.5px; }
+        .proy-label { font-size: 11px; color:#6b7280; margin-top:2px; }
+        .proy-row { display:flex; justify-content:space-between; align-items:flex-start; padding:8px 0; border-bottom:1px solid #f3f4f6; }
+        .proy-row:last-child { border-bottom:none; }
+        .badge-compra { background:rgba(249,115,22,0.15); color:#f97316; border:1px solid #f97316; }
+        .span-6{grid-column:span 6;} .span-4{grid-column:span 4;} .span-3{grid-column:span 3;} .span-12{grid-column:span 12;}
+        .chart-container { position:relative; height:300px; margin-top:10px; }
+        .chart-container-small { position:relative; height:200px; margin-top:10px; }
+        .connection-status { position:fixed; bottom:20px; right:20px; padding:10px 20px; border-radius:20px; background:rgba(46,204,113,0.15); border:1px solid #2ecc71; color:#2ecc71; font-size:12px; z-index:1000; }
+        .connection-status.error { background:rgba(231,76,60,0.15); border:1px solid #e74c3c; color:#e74c3c; }
+        .badge-folio { display:inline-block; padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600; }
+        .badge-venta { background:rgba(76,175,80,0.15); color:#4CAF50; border:1px solid #4CAF50; }
+        .badge-recep  { background:rgba(33,150,243,0.15); color:#2196F3; border:1px solid #2196F3; }
+        .badge-anticipo { background:rgba(255,193,7,0.15); color:#e6a800; border:1px solid #FFC107; }
 
-        /* ── Fila de subdetalle resaltada ───────────────────── */
-        .subrow-frame td {
-            border-left: 3px solid rgba(33, 150, 243, 0.5);
-            border-bottom: 2px solid rgba(33, 150, 243, 0.25);
-        }
-
-        /* ── Proyección card ─────────────────────────────────── */
-        .proy-value {
-            font-size: 1.5em;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-        .proy-label {
-            font-size: 11px;
-            color: var(--text-mute);
-            margin-top: 2px;
-        }
-        .proy-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-        .proy-row:last-child { border-bottom: none; }
-
-        /* ── badge-compra ────────────────────────────────────── */
-        .badge-compra {
-            background: rgba(249,115,22,0.2);
-            color: #f97316;
-            border: 1px solid #f97316;
-        }
-
-        /* Utilidades de Grid */
-        .span-6 { grid-column: span 6; }
-        .span-4 { grid-column: span 4; }
-        .span-3 { grid-column: span 3; }
-        .span-12 { grid-column: span 12; }
-
-        /* Chart containers */
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin-top: 15px;
-        }
-
-        .chart-container-small {
-            position: relative;
-            height: 200px;
-            margin-top: 15px;
-        }
-
-        .connection-status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            border-radius: 20px;
-            background: rgba(46, 204, 113, 0.2);
-            border: 1px solid #2ecc71;
-            color: #2ecc71;
-            font-size: 12px;
-            z-index: 1000;
-        }
-
-        .connection-status.error {
-            background: rgba(231, 76, 60, 0.2);
-            border: 1px solid #e74c3c;
-            color: #e74c3c;
-        }
+        /* Configuración de costos */
+        .config-section { background:#f8f9fa; padding:16px; border-radius:12px; border:1px solid #e5e7eb; margin-bottom:20px; }
+        .config-row { display:flex; gap:15px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
+        .config-item { flex:1; min-width:200px; }
+        .config-item label { display:block; margin-bottom:4px; color:#6b7280; font-size:13px; }
+        .config-item select, .config-item input { width:100%; background:#fff; color:#374151; border:1px solid #d1d5db; padding:7px 12px; border-radius:7px; outline:none; }
+        .btn-reset { background:linear-gradient(135deg,#e74c3c,#c0392b); color:#fff; border:none; padding:9px 18px; border-radius:8px; cursor:pointer; font-size:13px; transition:all 0.3s; }
+        .btn-reset:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(231,76,60,0.35); }
     </style>
 </head>
 
@@ -713,213 +693,384 @@
 
             <!-- SECCIÓN: VENTAS -->
             <section id="section-ventas" class="dashboard-section active-section">
-                <!-- Filtros de Validez -->
-                <div class="glass-card span-12" style="padding: 15px;">
-                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-                        <strong style="color: var(--neon-yellow);">🔍 Filtrar por Validez:</strong>
-                        <div id="validez-filters" style="display: flex; gap: 15px; flex-wrap: wrap;">
-                            <!-- Se llenarán dinámicamente con JavaScript -->
+
+                <!-- ╔══ BARRA DE DIMENSIONES / FILTROS ══╗ -->
+                <div class="span-12">
+                    <div class="dim-filter-bar">
+
+                        <!-- Recepción -->
+                        <div class="dim-dropdown">
+                            <button class="dim-btn" id="btn-dim-recep" onclick="toggleDimPanel('dim-panel-recep', this)">
+                                📘 Recepción <span class="arrow-icon">▾</span>
+                            </button>
+                            <div class="dim-panel" id="dim-panel-recep">
+                                <div class="dim-panel-header">📘 Recepción</div>
+                                <label class="dim-option"><input type="radio" name="v-recep" value="" checked onchange="applyDimFilter('recep',this)"> Todos</label>
+                                <label class="dim-option"><input type="radio" name="v-recep" value="con" onchange="applyDimFilter('recep',this)"> Con Servicio</label>
+                                <label class="dim-option"><input type="radio" name="v-recep" value="sin" onchange="applyDimFilter('recep',this)"> Sin Servicio</label>
+                            </div>
                         </div>
-                        <button onclick="selectAllValidez()" style="padding: 5px 15px; background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; color: #2ecc71; border-radius: 5px; cursor: pointer;">
-                            ✅ Todas
+
+                        <!-- Anticipo -->
+                        <div class="dim-dropdown">
+                            <button class="dim-btn" id="btn-dim-anticipo" onclick="toggleDimPanel('dim-panel-anticipo', this)">
+                                📒 Anticipo <span class="arrow-icon">▾</span>
+                            </button>
+                            <div class="dim-panel" id="dim-panel-anticipo">
+                                <div class="dim-panel-header">📒 Anticipo</div>
+                                <label class="dim-option"><input type="radio" name="v-anticipo" value="" checked onchange="applyDimFilter('anticipo',this)"> Todos</label>
+                                <label class="dim-option"><input type="radio" name="v-anticipo" value="con" onchange="applyDimFilter('anticipo',this)"> Con Anticipo</label>
+                                <label class="dim-option"><input type="radio" name="v-anticipo" value="sin" onchange="applyDimFilter('anticipo',this)"> Sin Anticipo</label>
+                            </div>
+                        </div>
+
+                        <!-- Dispositivo -->
+                        <div class="dim-dropdown">
+                            <button class="dim-btn" id="btn-dim-dispositivo" onclick="toggleDimPanel('dim-panel-dispositivo', this)">
+                                🖥️ Dispositivo <span class="arrow-icon">▾</span>
+                            </button>
+                            <div class="dim-panel" id="dim-panel-dispositivo">
+                                <div class="dim-panel-header">🖥️ Dispositivo</div>
+                                <div id="dim-opts-dispositivo"></div>
+                                <div class="dim-clear-btn" onclick="clearDimFilter('dispositivo')">✕ Limpiar</div>
+                            </div>
+                        </div>
+
+                        <!-- Marca -->
+                        <div class="dim-dropdown">
+                            <button class="dim-btn" id="btn-dim-marca" onclick="toggleDimPanel('dim-panel-marca', this)">
+                                ®️ Marca <span class="arrow-icon">▾</span>
+                            </button>
+                            <div class="dim-panel" id="dim-panel-marca">
+                                <div class="dim-panel-header">®️ Marca</div>
+                                <div id="dim-opts-marca"></div>
+                                <div class="dim-clear-btn" onclick="clearDimFilter('marca')">✕ Limpiar</div>
+                            </div>
+                        </div>
+
+                        <!-- Modelo -->
+                        <div class="dim-dropdown">
+                            <button class="dim-btn" id="btn-dim-modelo" onclick="toggleDimPanel('dim-panel-modelo', this)">
+                                📱 Modelo <span class="arrow-icon">▾</span>
+                            </button>
+                            <div class="dim-panel" id="dim-panel-modelo">
+                                <div class="dim-panel-header">📱 Modelo</div>
+                                <div id="dim-opts-modelo"></div>
+                                <div class="dim-clear-btn" onclick="clearDimFilter('modelo')">✕ Limpiar</div>
+                            </div>
+                        </div>
+
+                        <!-- Resultado -->
+                        <div class="dim-dropdown">
+                            <button class="dim-btn" id="btn-dim-resultado" onclick="toggleDimPanel('dim-panel-resultado', this)">
+                                🏁 Resultado <span class="arrow-icon">▾</span>
+                            </button>
+                            <div class="dim-panel" id="dim-panel-resultado">
+                                <div class="dim-panel-header">🏁 Resultado</div>
+                                <div id="dim-opts-resultado"></div>
+                                <div class="dim-clear-btn" onclick="clearDimFilter('resultado')">✕ Limpiar</div>
+                            </div>
+                        </div>
+
+                        <!-- Debido A -->
+                        <div class="dim-dropdown">
+                            <button class="dim-btn" id="btn-dim-debidoa" onclick="toggleDimPanel('dim-panel-debidoa', this)">
+                                👤 Debido a <span class="arrow-icon">▾</span>
+                            </button>
+                            <div class="dim-panel" id="dim-panel-debidoa">
+                                <div class="dim-panel-header">👤 Debido a</div>
+                                <div id="dim-opts-debidoa"></div>
+                                <div class="dim-clear-btn" onclick="clearDimFilter('debidoa')">✕ Limpiar</div>
+                            </div>
+                        </div>
+
+                        <!-- Tipo Solicitud -->
+                        <div class="dim-dropdown">
+                            <button class="dim-btn" id="btn-dim-tiposol" onclick="toggleDimPanel('dim-panel-tiposol', this)">
+                                1️⃣ Tipo Solicitud <span class="arrow-icon">▾</span>
+                            </button>
+                            <div class="dim-panel" id="dim-panel-tiposol">
+                                <div class="dim-panel-header">1️⃣ Tipo de Solicitud</div>
+                                <div id="dim-opts-tiposol"></div>
+                                <div class="dim-clear-btn" onclick="clearDimFilter('tiposol')">✕ Limpiar</div>
+                            </div>
+                        </div>
+
+                        <!-- Subtipo Solicitud -->
+                        <div class="dim-dropdown">
+                            <button class="dim-btn" id="btn-dim-subtiposol" onclick="toggleDimPanel('dim-panel-subtiposol', this)">
+                                2️⃣ Subtipo <span class="arrow-icon">▾</span>
+                            </button>
+                            <div class="dim-panel" id="dim-panel-subtiposol">
+                                <div class="dim-panel-header">2️⃣ Subtipo Solicitud</div>
+                                <div id="dim-opts-subtiposol"></div>
+                                <div class="dim-clear-btn" onclick="clearDimFilter('subtiposol')">✕ Limpiar</div>
+                            </div>
+                        </div>
+
+                        <!-- Tipo Servicio -->
+                        <div class="dim-dropdown">
+                            <button class="dim-btn" id="btn-dim-tiposrv" onclick="toggleDimPanel('dim-panel-tiposrv', this)">
+                                ⚙️ Tipo Servicio <span class="arrow-icon">▾</span>
+                            </button>
+                            <div class="dim-panel" id="dim-panel-tiposrv">
+                                <div class="dim-panel-header">⚙️ Tipo Servicio</div>
+                                <div id="dim-opts-tiposrv"></div>
+                                <div class="dim-clear-btn" onclick="clearDimFilter('tiposrv')">✕ Limpiar</div>
+                            </div>
+                        </div>
+
+                        <!-- Separador + Slider Total Ventas / Margen -->
+                        <div class="range-bar-wrap">
+                            <button class="range-toggle" id="btn-range-toggle" onclick="toggleRangeMetric()">
+                                💲 Total Venta
+                            </button>
+                            <span class="range-label">Mín:</span>
+                            <input type="range" class="hdm-slider" id="slider-min-venta" min="0" max="100" value="0" oninput="applyRangeFilter()">
+                            <span class="range-value" id="label-range-min">$0</span>
+                        </div>
+
+                        <!-- Botón limpiar todo -->
+                        <button onclick="clearAllDimFilters()" style="padding:6px 14px;border-radius:8px;background:#fee2e2;border:1px solid #fca5a5;color:#b91c1c;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
+                            ✕ Limpiar todo
                         </button>
-                        <button onclick="deselectAllValidez()" style="padding: 5px 15px; background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #e74c3c; border-radius: 5px; cursor: pointer;">
-                            ❌ Ninguna
-                        </button>
+
+                        <!-- Contador de registros -->
+                        <span id="ventas-filtros-count" style="font-size:11px;color:#6b7280;margin-left:auto;white-space:nowrap;"></span>
                     </div>
                 </div>
 
-                <!-- Configuración de Costos -->
-                <div class="glass-card span-12" style="padding: 15px; border: 2px solid var(--neon-yellow);">
-                    <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
-                        <strong style="color: var(--neon-yellow);">⚙️ Configuración de Costos:</strong>
-                        
-                        <label style="display: flex; align-items: center; gap: 10px;">
-                            <span>💵 Gastos Fijos Mensuales:</span>
+                <!-- Configuración de Costos (compacta) -->
+                <div class="glass-card span-12" style="padding:12px 16px;">
+                    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                        <strong style="color:#b22222;font-size:13px;">⚙️ Costos:</strong>
+                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;">
+                            💵 Gastos Fijos:
                             <input type="number" id="input-gastos-fijos" value="40000" min="0" step="1000"
-                                style="padding: 5px 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 5px; width: 120px;"
+                                style="padding:4px 8px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;width:110px;font-size:12px;"
                                 onchange="updateGastosFijos(this.value)">
                         </label>
-
-                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                <input type="checkbox" id="check-gastos-fijos" checked onchange="toggleCostoLayer('gastosFijos', this.checked)">
-                                <span>🏢 Gastos Fijos</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                <input type="checkbox" id="check-gastos-admin" checked onchange="toggleCostoLayer('gastosAdmin', this.checked)">
-                                <span>📋 Gastos Admin</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                <input type="checkbox" id="check-costo-ventas" checked onchange="toggleCostoLayer('costoVentas', this.checked)">
-                                <span>💸 Costo Ventas</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                <input type="checkbox" id="check-insumos" checked onchange="toggleCostoLayer('insumos', this.checked)">
-                                <span>🔧 Insumos</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Nota informativa -->
-                    <div style="margin-top: 10px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-left: 3px solid var(--neon-blue); font-size: 0.9em;">
-                        <strong style="color: var(--neon-blue);">ℹ️ Nota:</strong> 
-                        <span style="color: rgba(255,255,255,0.8);">
-                            Las <strong>Extracciones</strong> e <strong>Ingresos</strong> en Egresos están disponibles en los filtros de segmentación, 
-                            pero NO se incluyen en esta gráfica de costos (son movimientos de flujo de caja, no gastos operativos).
-                        </span>
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
+                            <input type="checkbox" id="check-gastos-fijos" checked onchange="toggleCostoLayer('gastosFijos',this.checked)">
+                            🏢 Gastos Fijos
+                        </label>
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
+                            <input type="checkbox" id="check-gastos-admin" checked onchange="toggleCostoLayer('gastosAdmin',this.checked)">
+                            📋 Gastos Admin
+                        </label>
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
+                            <input type="checkbox" id="check-costo-ventas" checked onchange="toggleCostoLayer('costoVentas',this.checked)">
+                            💸 Costo Ventas
+                        </label>
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
+                            <input type="checkbox" id="check-insumos" checked onchange="toggleCostoLayer('insumos',this.checked)">
+                            🔧 Insumos
+                        </label>
                     </div>
                 </div>
 
-                <!-- ╔══ GRÁFICA + PROYECCIÓN (lado a lado) ══╗ -->
-                <div class="glass-card" style="grid-column: span 12;">
-                    <div class="collapsible-header" onclick="toggleCollapse('ventas-chart-body', 'arrow-ventas-chart')">
-                        <span>📊 Gráfica de Ventas &amp; Tendencia</span>
-                        <span class="collapse-arrow" id="arrow-ventas-chart">▼</span>
+                <!-- ╔══ GRÁFICA PRINCIPAL ══╗ -->
+                <div class="glass-card span-12">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
+                        <div class="collapsible-header" onclick="toggleCollapse('ventas-chart-body','arrow-ventas-chart')" style="flex:1;">
+                            <span style="font-size:15px;font-weight:700;color:#4a0000;">📊 Gráfica de Ventas &amp; Tendencia</span>
+                            <span class="collapse-arrow" id="arrow-ventas-chart">▼</span>
+                        </div>
+                        <!-- Toggles de periodos -->
+                        <div class="periodo-toggles">
+                            <button class="periodo-toggle-btn p-actual on" id="toggle-p-actual" onclick="togglePeriodo('actual',this)">
+                                ● Este periodo
+                            </button>
+                            <button class="periodo-toggle-btn p-anterior" id="toggle-p-anterior" onclick="togglePeriodo('anterior',this)">
+                                ● Periodo anterior
+                            </button>
+                            <button class="periodo-toggle-btn p-anio" id="toggle-p-anio" onclick="togglePeriodo('anio',this)">
+                                ● Mismo mes año ant.
+                            </button>
+                        </div>
                     </div>
-                    <div id="ventas-chart-body" class="collapsible-body" style="padding-top:10px;">
+                    <div id="ventas-chart-body" class="collapsible-body" style="padding-top:4px;">
                         <div class="chart-container" style="height:400px;">
                             <canvas id="chart-ventas-main"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tarjeta de proyección a fin de mes -->
-                <div class="glass-card" style="grid-column: span 12; border: 1px solid rgba(168,85,247,0.4);">
-                    <div class="card-title" style="color:var(--neon-lila);">🔮 Proyección</div>
-                    <div style="display:flex;gap:30px;justify-content:space-around;flex-wrap:wrap;">
+                <!-- ╔══ TARJETAS: ANILLO TRIPLE + GRÁFICA MIXTA ══╗ -->
 
-                        <div class="proy-row">
-                            <div>
-                                <div class="proy-label">💲 Ventas al cierre</div>
-                                <div class="proy-value" style="color:var(--neon-green);" id="proy-ventas">—</div>
-                            </div>
+                <!-- Anillo triple -->
+                <div class="glass-card span-4">
+                    <div class="card-title">🔵 Distribución de Selección</div>
+                    <div style="position:relative;height:220px;">
+                        <canvas id="chart-donut-triple"></canvas>
+                    </div>
+                    <div class="donut-legend" id="donut-triple-legend">
+                        <div class="donut-legend-row">
+                            <span class="donut-dot" style="background:#4CAF50;"></span>
+                            <span id="donut-lbl-ventas" style="color:#374151;font-size:12px;">Total Ventas: —</span>
                         </div>
-
-                        <div class="proy-row">
-                            <div>
-                                <div class="proy-label">💰 Costos proyectados</div>
-                                <div class="proy-value" style="color:var(--neon-orange);" id="proy-costos">—</div>
-                            </div>
+                        <div class="donut-legend-row">
+                            <span class="donut-dot" style="background:#2196F3;"></span>
+                            <span id="donut-lbl-margen" style="color:#374151;font-size:12px;">Margen Contrib.: —</span>
                         </div>
-
-                        <div class="proy-row">
-                            <div>
-                                <div class="proy-label">💸 Gastos fijos</div>
-                                <div class="proy-value" style="color:#ef4444;" id="proy-fijos">—</div>
-                            </div>
-                        </div>
-
-                        <div class="proy-row" style="margin-top:4px; border-top:1px solid rgba(168,85,247,0.4);">
-                            <div>
-                                <div class="proy-label">💹 Resultado proyectado</div>
-                                <div class="proy-value" style="font-size:1.7em;" id="proy-resultado">—</div>
-                            </div>
-                        </div>
-
-                        <div class="proy-row">
-                            <div>
-                                <div class="proy-label">⚖️ Punto de equilibrio</div>
-                                <div style="font-size:1.1em;font-weight:600;margin-top:2px;" id="proy-equilibrio">—</div>
-                            </div>
-                        </div>
-
-                        <div style="font-size:10px;color:var(--text-mute);margin-top:8px;line-height:1.4;">
-                            Basado en tendencia lineal de ventas y promedio de costos del periodo.
-                            Los gastos fijos se toman del campo configurable.
+                        <div class="donut-legend-row">
+                            <span class="donut-dot" style="background:#FFC107;"></span>
+                            <span id="donut-lbl-folios" style="color:#374151;font-size:12px;">Folios: —</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- ══ TARJETAS INDICADORES (debajo de gráfica) ══ -->
-                <div class="glass-card span-3">
+                <!-- Gráfica Mixta -->
+                <div class="glass-card span-8">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                        <div class="card-title" style="margin-bottom:0;">📈 Análisis por Dimensión</div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:11px;color:#6b7280;">Eje X:</span>
+                            <select class="dim-axis-select" id="dim-axis-selector" onchange="updateMixedChart()">
+                                <option value="fecha">📅 Fecha</option>
+                                <option value="recep">📘 Recepción</option>
+                                <option value="anticipo">📒 Anticipo</option>
+                                <option value="dispositivo">🖥️ Dispositivo</option>
+                                <option value="marca">®️ Marca</option>
+                                <option value="modelo">📱 Modelo</option>
+                                <option value="resultado">🏁 Resultado</option>
+                                <option value="debidoa">👤 Debido a</option>
+                                <option value="tiposol">1️⃣ Tipo Solicitud</option>
+                                <option value="subtiposol">2️⃣ Subtipo Solicitud</option>
+                                <option value="tiposrv">⚙️ Tipo Servicio</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="position:relative;height:220px;">
+                        <canvas id="chart-mixed-dim"></canvas>
+                    </div>
+                    <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
+                        <span style="font-size:11px;display:flex;align-items:center;gap:5px;">
+                            <span style="width:24px;height:8px;background:rgba(76,175,80,0.4);border-radius:3px;display:inline-block;"></span>
+                            Área = Total Venta
+                        </span>
+                        <span style="font-size:11px;display:flex;align-items:center;gap:5px;">
+                            <span style="width:12px;height:12px;background:#2196F3;border-radius:2px;display:inline-block;"></span>
+                            Barras = Margen Contrib.
+                        </span>
+                        <span style="font-size:11px;display:flex;align-items:center;gap:5px;">
+                            <span style="width:24px;height:3px;background:#FFC107;display:inline-block;"></span>
+                            Línea = Nº Folios
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Leyenda nota (fuera de tarjetas, ancho completo) -->
+                <div class="span-12">
+                    <div class="leyenda-nota">
+                        📐 <strong>Proyección basada en tendencia lineal</strong> de ventas del periodo · Costos calculados como promedio del periodo + componente fijo mensual configurable · El punto de equilibrio indica el día estimado en que se cubren costos totales
+                    </div>
+                </div>
+
+                <!-- ╔══ TARJETAS INDICADORES ══╗ -->
+                <div class="glass-card span-3" style="border-top: 3px solid #4CAF50;">
                     <div class="card-title">💲 Total Ventas</div>
-                    <div class="stat-value" style="color:var(--neon-green);" id="stat-total-ventas">$0</div>
+                    <div class="stat-value" style="color:#4CAF50;" id="stat-total-ventas">$0</div>
                     <div class="stat-label">En el periodo seleccionado</div>
                 </div>
 
-                <div class="glass-card span-3">
+                <div class="glass-card span-3" style="border-top: 3px solid #FF9800;">
                     <div class="card-title">💰 Costo de Ventas</div>
-                    <div class="stat-value" style="color:var(--neon-orange);" id="stat-costo-ventas">$0</div>
+                    <div class="stat-value" style="color:#FF9800;" id="stat-costo-ventas">$0</div>
                     <div class="stat-label">Egresos ligados a folios</div>
                 </div>
 
-                <div class="glass-card span-3">
+                <div class="glass-card span-3" style="border-top: 3px solid #2196F3;">
                     <div class="card-title">💹 Utilidad Bruta</div>
-                    <div class="stat-value" style="color:var(--neon-blue);" id="stat-margen">$0</div>
+                    <div class="stat-value" style="color:#2196F3;" id="stat-margen">$0</div>
                     <div class="stat-label" id="stat-margen-pct">0%</div>
                 </div>
 
-                <div class="glass-card span-3">
+                <div class="glass-card span-3" style="border-top: 3px solid #FF9800;">
                     <div class="card-title">💰 Costo Total</div>
-                    <div class="stat-value" style="color:var(--neon-orange);" id="stat-costo-total">$0</div>
+                    <div class="stat-value" style="color:#FF9800;" id="stat-costo-total">$0</div>
                     <div class="stat-label">Fijos + admin + ventas</div>
                 </div>
 
-                <div class="glass-card span-3">
+                <div class="glass-card span-3" style="border-top: 3px solid #9C27B0;">
                     <div class="card-title">💸 Total Pagos</div>
-                    <div class="stat-value" style="color:var(--neon-lila);" id="stat-total-pagos">$0</div>
+                    <div class="stat-value" style="color:#9C27B0;" id="stat-total-pagos">$0</div>
                     <div class="stat-label">Flujo de efectivo recibido</div>
                 </div>
 
-                <div class="glass-card span-3">
+                <div class="glass-card span-3" style="border-top: 3px solid #9C27B0;">
                     <div class="card-title">💸 Extracciones</div>
                     <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div>
-                            <div style="font-size:1.1em;color:var(--neon-lila);font-weight:bold;" id="stat-extracciones">0 reg.</div>
-                        </div>
-                        <div style="font-size:1.3em;color:var(--neon-lila);" id="stat-extracciones-monto">$0</div>
+                        <div style="font-size:1.1em;color:#9C27B0;font-weight:bold;" id="stat-extracciones">0 reg.</div>
+                        <div style="font-size:1.3em;color:#9C27B0;" id="stat-extracciones-monto">$0</div>
                     </div>
                     <div class="stat-label">Flujo · No incluidas en costos</div>
                 </div>
 
-                <div class="glass-card span-3">
+                <div class="glass-card span-3" style="border-top: 3px solid #9C27B0;">
                     <div class="card-title">💸 Otros Ingresos</div>
                     <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div>
-                            <div style="font-size:1.1em;color:var(--neon-lila);font-weight:bold;" id="stat-ingresos">0 reg.</div>
-                        </div>
-                        <div style="font-size:1.3em;color:var(--neon-lila);" id="stat-ingresos-monto">$0</div>
+                        <div style="font-size:1.1em;color:#9C27B0;font-weight:bold;" id="stat-ingresos">0 reg.</div>
+                        <div style="font-size:1.3em;color:#9C27B0;" id="stat-ingresos-monto">$0</div>
                     </div>
                     <div class="stat-label">Flujo · No incluidos en costos</div>
                 </div>
 
-                <div class="glass-card span-3">
+                <div class="glass-card span-3" style="border-top: 3px solid #4CAF50;">
                     <div class="card-title">💲 Ticket Promedio</div>
-                    <div class="stat-value" style="color:var(--neon-green);" id="stat-ticket-promedio">$0</div>
+                    <div class="stat-value" style="color:#4CAF50;" id="stat-ticket-promedio">$0</div>
                     <div class="stat-label" id="stat-folios-ventas">0 folios</div>
                 </div>
 
+                <!-- Proyección -->
+                <div class="glass-card span-12" style="border:1px solid rgba(156,39,176,0.3);">
+                    <div class="card-title" style="color:#9C27B0;">🔮 Proyección al cierre</div>
+                    <div style="display:flex;gap:20px;justify-content:space-around;flex-wrap:wrap;">
+                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
+                            <div class="proy-label">💲 Ventas al cierre</div>
+                            <div class="proy-value" style="color:#4CAF50;" id="proy-ventas">—</div>
+                        </div>
+                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
+                            <div class="proy-label">💰 Costos proyectados</div>
+                            <div class="proy-value" style="color:#FF9800;" id="proy-costos">—</div>
+                        </div>
+                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
+                            <div class="proy-label">💸 Gastos fijos</div>
+                            <div class="proy-value" style="color:#ef4444;" id="proy-fijos">—</div>
+                        </div>
+                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
+                            <div class="proy-label">💹 Resultado proyectado</div>
+                            <div class="proy-value" style="font-size:1.7em;" id="proy-resultado">—</div>
+                        </div>
+                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
+                            <div class="proy-label">⚖️ Punto de equilibrio</div>
+                            <div style="font-size:1.1em;font-weight:600;margin-top:2px;" id="proy-equilibrio">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de ventas -->
                 <div class="glass-card span-12">
                     <div class="collapsible-header" id="ventas-table-title"
                          onclick="toggleCollapse('ventas-table-body-wrap','arrow-ventas-table')"
                          style="padding:0;">
-                        <span>📋 Detalle de Ventas</span>
+                        <span style="font-size:15px;font-weight:700;color:#4a0000;">📋 Detalle de Ventas</span>
                         <span class="collapse-arrow" id="arrow-ventas-table">▼</span>
                     </div>
                     <div id="ventas-table-body-wrap" class="collapsible-body">
-                    <!-- Barra de herramientas de la tabla -->
-                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:10px 0 8px;">
-                        <span style="font-size:12px; color:var(--text-mute);">Columnas:</span>
-                        <div id="ventas-col-toggles" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 8px;">
+                            <span style="font-size:12px;color:#6b7280;">Columnas:</span>
+                            <div id="ventas-col-toggles" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+                        </div>
+                        <div style="overflow-x:auto;max-height:60vh;overflow-y:auto;">
+                            <table id="ventas-main-table">
+                                <thead><tr id="ventas-thead-row"></tr></thead>
+                                <tbody id="ventas-table-body">
+                                    <tr><td colspan="11" style="text-align:center;color:#6b7280;">Cargando datos...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div style="overflow-x:auto; max-height:60vh; overflow-y:auto;">
-                        <table id="ventas-main-table">
-                            <thead>
-                                <tr id="ventas-thead-row">
-                                    <!-- Columnas generadas por JS -->
-                                </tr>
-                            </thead>
-                            <tbody id="ventas-table-body">
-                                <tr>
-                                    <td colspan="11" style="text-align: center; color: var(--text-mute);">
-                                        Cargando datos...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div><!-- /overflow -->
-                    </div><!-- /collapsible-body -->
                 </div>
             </section>
 
@@ -1750,121 +1901,105 @@
                 return;
             }
 
-            // 🔍 DEPURACIÓN DETALLADA
-            console.log('═══════════════════════════════════════');
-            console.log('🔍 DEBUG: Análisis de Datos de Ventas');
-            console.log('═══════════════════════════════════════');
-            console.log('📊 Total registros cargados:', appState.ventasData.length);
-            console.log('📊 Primer registro completo:', appState.ventasData[0]);
-            console.log('📊 Columnas disponibles:', Object.keys(appState.ventasData[0]));
-            
-            // Analizar valores de columnas clave
-            const validezValues = [...new Set(appState.ventasData.map(v => v.Validez))].filter(v => v);
-            console.log('📊 Valores únicos en Validez:', validezValues);
-            
-            // Mostrar muestras de valores
-            console.log('📊 Muestra Total Venta:', appState.ventasData.slice(0, 3).map(v => v['Total Venta']));
-            console.log('📊 Muestra Total Pagos:', appState.ventasData.slice(0, 3).map(v => v['Total Pagos']));
-            console.log('📊 Muestra Fecha Ef-Venta:', appState.ventasData.slice(0, 3).map(v => v['Fecha Ef-Venta']));
-            console.log('📊 Muestra Fecha Venta:', appState.ventasData.slice(0, 3).map(v => v['Fecha Venta']));
-
-            // Crear filtros dinámicos si no existen
-            createUniversalFilter(appState.ventasData, 'Validez', 'validez-filters', 'ventas.validez', updateVentasView);
-
-            console.log('📊 Filtros activos - Validez:', appState.filters.ventas.validez);
-
             // Calcular rango de fechas según periodo configurado
             const periodo = appState.config.periodo || 'este-mes';
             const rangoFechas = calcularRangoFechas(periodo);
-            
-            console.log('📅 Periodo seleccionado:', periodo);
-            console.log('📅 Rango de fechas:', {
-                inicio: formatFecha(rangoFechas.start),
-                fin: formatFecha(rangoFechas.end)
-            });
 
-            // Filtrar datos según selección del usuario Y rango de fechas
-            const validVentas = appState.ventasData.filter(v => {
-                // Filtro de validez
-                const incluidoValidez = appState.filters.ventas.validez.includes(v.Validez);
-                if (!incluidoValidez) {
-                    console.log('❌ Registro excluido por Validez:', v.Validez, '- Folio:', v['Folio Venta']);
-                    return false;
-                }
-                
-                // Filtro de fecha — comparar strings 'YYYY-MM-DD' (sin timezone)
+            // ── 1. Filtrar: solo válidos + rango de fechas ──────────────────
+            const porFecha = appState.ventasData.filter(v => {
+                const val = (v['Validez']||'').toLowerCase();
+                // Excluir registros explícitamente inválidos; si el campo está vacío, incluir
+                if (val && !val.includes('valid')) return false;
                 const fechaRaw = v['Fecha Ef-Venta'] || v['Fecha Venta'];
                 const fechaObj = parseFecha(fechaRaw);
-                if (!fechaObj) return false;   // sin fecha = excluir
-                const fechaKey = formatFecha(fechaObj); // 'YYYY-MM-DD'
-
-                if (fechaKey < rangoFechas.startStr || fechaKey > rangoFechas.endStr) {
-                    return false;
-                }
-                
-                return true;
+                if (!fechaObj) return false;
+                const fechaKey = formatFecha(fechaObj);
+                return fechaKey >= rangoFechas.startStr && fechaKey <= rangoFechas.endStr;
             });
-            
-            console.log('📊 RESULTADO FILTRADO: Total registros:', appState.ventasData.length, '→ Filtrados:', validVentas.length);
-            
-            if (validVentas.length === 0) {
-                console.error('⚠️ NO HAY REGISTROS DESPUÉS DE FILTRAR. Revisa los filtros de Validez.');
-            }
-            
-            console.log('📊 Primeros 3 registros filtrados:', validVentas.slice(0, 3).map(v => v['Folio Venta'] + ' | ' + (v['Fecha Venta'] || v['Fecha Ef-Venta'])));
-            console.log('═══════════════════════════════════════');
 
-            // ← Guardar en appState para debug desde consola (escribe appState.ventasFiltradas)
+            // ── 2. Poblar opciones de dimensiones (solo primera vez o cuando cambien) ──
+            const dimFields = {
+                dispositivo: r => r['Dispositivo'] || '',
+                marca:       r => r['Marca'] || '',
+                modelo:      r => r['Modelo_Ver'] || r['Modelo'] || '',
+                resultado:   r => r['Resultado del Servicio'] || r['Resultado'] || '',
+                debidoa:     r => r['Debido a'] || '',
+                tiposol:     r => r['Tipo Solicitud'] || '',
+                subtiposol:  r => r['Subtipo Solicitud'] || '',
+                tiposrv:     r => r['Tipo Servicio'] || r['TipoServicio'] || ''
+            };
+            Object.entries(dimFields).forEach(([dim, fn]) => {
+                const container = document.getElementById('dim-opts-' + dim);
+                if (container && container.children.length === 0) {
+                    buildDimOptions(dim, porFecha.map(fn));
+                }
+            });
+
+            // Ajustar slider según máximo real
+            const sliderEl = document.getElementById('slider-min-venta');
+            if (sliderEl && sliderEl._lastMax === undefined) {
+                const maxV = Math.max(...porFecha.map(r => parseMonto(r['Total Venta'])));
+                sliderEl._lastMax = maxV;
+                // El slider va de 0 a 100% del max real; valor actual 0
+            }
+
+            // ── 3. Aplicar filtros de dimensión sobre los ya filtrados por fecha ──
+            const validVentas = filterVentasByDim(porFecha);
+
+            // Contador de registros
+            const cntEl = document.getElementById('ventas-filtros-count');
+            if (cntEl) cntEl.textContent = validVentas.length + ' registros (de ' + porFecha.length + ')';
+
+            // ── 4. Guardar en appState para debug ──
             appState.ventasFiltradas = validVentas;
 
-            // Calcular Costo de Ventas (pasando el mismo rango de fechas)
+            // ── 5. Calcular costos ──
             calcularCostoDeVentas(rangoFechas);
 
-            // Calcular estadísticas usando parseMonto
-            const totalVentas = validVentas.reduce((sum, v) => sum + parseMonto(v['Total Venta']), 0);
-            const totalPagos = validVentas.reduce((sum, v) => sum + parseMonto(v['Total Pagos']), 0);
-            const numFolios = validVentas.length;
+            // ── 6. Métricas ──
+            const totalVentas    = validVentas.reduce((s,v) => s + parseMonto(v['Total Venta']), 0);
+            const totalPagos     = validVentas.reduce((s,v) => s + parseMonto(v['Total Pagos']), 0);
+            const numFolios      = validVentas.length;
             const ticketPromedio = numFolios > 0 ? totalVentas / numFolios : 0;
+            const costos         = appState.costoVentasData?.totales || {};
+            const costoTotal     = (costos.costoVentas||0) + (costos.insumosMes||0) + (costos.gastosAdmin||0) + appState.config.costos.gastosFijos;
+            const margen         = totalVentas - costoTotal;
+            const margenPct      = totalVentas > 0 ? (margen / totalVentas) * 100 : 0;
 
-            console.log('💰 Total Ventas calculado:', formatCurrency(totalVentas));
-            console.log('💰 Total Pagos calculado:', formatCurrency(totalPagos));
-            console.log('📊 Número de folios:', numFolios);
-            console.log('🎯 Ticket promedio:', formatCurrency(ticketPromedio));
-
-            // Obtener costos
-            const costos = appState.costoVentasData?.totales || {};
-            const costoTotal = (costos.costoVentas || 0) + (costos.insumosMes || 0) + (costos.gastosAdmin || 0) + appState.config.costos.gastosFijos;
-            const margen = totalVentas - costoTotal;
-            const margenPorcentaje = totalVentas > 0 ? (margen / totalVentas) * 100 : 0;
-
-            // Actualizar stats de ventas
-            document.getElementById('stat-total-ventas').textContent = formatCurrency(totalVentas);
-            document.getElementById('stat-total-pagos').textContent = formatCurrency(totalPagos);
-            document.getElementById('stat-folios-ventas').textContent = numFolios + ' folios';
+            // ── 7. Actualizar tarjetas ──
+            document.getElementById('stat-total-ventas').textContent    = formatCurrency(totalVentas);
+            document.getElementById('stat-total-pagos').textContent     = formatCurrency(totalPagos);
+            document.getElementById('stat-folios-ventas').textContent   = numFolios + ' folios';
             document.getElementById('stat-ticket-promedio').textContent = formatCurrency(ticketPromedio);
+            document.getElementById('stat-costo-ventas').textContent    = formatCurrency(costos.costoVentas||0);
+            document.getElementById('stat-costo-total').textContent     = formatCurrency(costoTotal);
+            document.getElementById('stat-margen').textContent          = formatCurrency(margen);
+            document.getElementById('stat-margen-pct').textContent      = margenPct.toFixed(1) + '%';
 
-            // Actualizar stats de costos
-            document.getElementById('stat-costo-ventas').textContent = formatCurrency(costos.costoVentas || 0);
-            document.getElementById('stat-costo-total').textContent = formatCurrency(costoTotal);
-            document.getElementById('stat-margen').textContent = formatCurrency(margen);
-            document.getElementById('stat-margen-pct').textContent = margenPorcentaje.toFixed(1) + '%';
+            const numExtr = appState.costoVentasData?.extracciones?.length || 0;
+            const numIngr = appState.costoVentasData?.otrosIngresos?.length || 0;
+            document.getElementById('stat-extracciones').textContent      = numExtr + ' registro' + (numExtr!==1?'s':'');
+            document.getElementById('stat-extracciones-monto').textContent = formatCurrency(costos.extracciones||0);
+            document.getElementById('stat-ingresos').textContent          = numIngr + ' registro' + (numIngr!==1?'s':'');
+            document.getElementById('stat-ingresos-monto').textContent    = formatCurrency(costos.otrosIngresos||0);
 
-            // Actualizar stats de flujo (no son costos)
-            const numExtracciones = appState.costoVentasData?.extracciones?.length || 0;
-            const numIngresos = appState.costoVentasData?.otrosIngresos?.length || 0;
-            const montoExtracciones = costos.extracciones || 0;
-            const montoIngresos = costos.otrosIngresos || 0;
-
-            document.getElementById('stat-extracciones').textContent = numExtracciones + ' registro' + (numExtracciones !== 1 ? 's' : '');
-            document.getElementById('stat-extracciones-monto').textContent = formatCurrency(montoExtracciones);
-            document.getElementById('stat-ingresos').textContent = numIngresos + ' registro' + (numIngresos !== 1 ? 's' : '');
-            document.getElementById('stat-ingresos-monto').textContent = formatCurrency(montoIngresos);
-
-            // Actualizar tabla
+            // ── 8. Tabla ──
             updateVentasTable(validVentas);
 
-            // Actualizar gráfica — pasa rango para construir eje X completo
+            // ── 9. Gráfica principal con periodos ──
             updateVentasChartWithCosts(validVentas, rangoFechas);
+            // Inyectar líneas de periodos anteriores después de que el chart exista
+            setTimeout(() => {
+                if (window._ventasMainChart) {
+                    injectPeriodDatasets(window._ventasMainChart, porFecha, rangoFechas);
+                }
+            }, 150);
+
+            // ── 10. Anillo triple ──
+            updateDonutTriple(validVentas, porFecha);
+
+            // ── 11. Gráfica mixta ──
+            updateMixedChart(validVentas);
         }
 
         // ========================================
@@ -2545,7 +2680,7 @@
             });
 
             if (appState.charts.ventasMain) appState.charts.ventasMain.destroy();
-            appState.charts.ventasMain = new Chart(ctx, {
+            appState.charts.ventasMain = window._ventasMainChart = new Chart(ctx, {
                 type:'line',
                 data:{ labels, datasets:ds },
                 options:{
@@ -2554,7 +2689,7 @@
                     plugins:{
                         legend:{
                             display:true, position:'top',
-                            labels:{ color:'#fff', font:{size:11}, padding:14, usePointStyle:true },
+                            labels:{ color:'#374151', font:{size:11}, padding:14, usePointStyle:true },
                             onClick:(evt,item,legend)=>{
                                 const meta=legend.chart.getDatasetMeta(item.datasetIndex);
                                 meta.hidden = meta.hidden===null ? true : !meta.hidden;
@@ -2572,9 +2707,9 @@
                         }
                     },
                     scales:{
-                        x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#fff',maxRotation:45,font:{size:10}} },
-                        y:{ beginAtZero:true, grid:{color:'rgba(255,255,255,0.05)'},
-                            ticks:{color:'#fff', callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'k':v)} }
+                        x:{ grid:{color:'#f3f4f6'}, ticks:{color:'#374151',maxRotation:45,font:{size:10}} },
+                        y:{ beginAtZero:true, grid:{color:'#f3f4f6'},
+                            ticks:{color:'#374151', callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'k':v)} }
                     }
                 }
             });
@@ -2917,267 +3052,4 @@
 
         // ── Tabla por dimensión ──────────────────────────────────────────
         const SRV_DIMS = {
-            dispositivo: { label:'🖥️ Dispositivo', fn:srvDispositivo },
-            marca:       { label:'®️ Marca',        fn:srvMarca },
-            modelo:      { label:'📱 Modelo',       fn:srvModelo },
-            tipoSol:     { label:'1️⃣ Tipo Solicitud',fn:srvTipoSol },
-            tipoSrv:     { label:'⚙️ Tipo Servicio', fn:srvTipoSrv },
-            resultado:   { label:'✅ Resultado',    fn:srvResultado },
-            debidoA:     { label:'📌 Debido A',     fn:srvDebidoA }
-        };
-
-        function switchSrvDim(dim) {
-            srvState.dim = dim;
-            document.querySelectorAll('.srv-dim-btn').forEach(b => b.classList.remove('active'));
-            const btn = document.getElementById('btn-srvdim-'+dim);
-            if (btn) btn.classList.add('active');
-            buildSrvDimTable(getServiciosFiltered(), dim);
-        }
-
-        function buildSrvDimTable(data, dim) {
-            const tbl = document.getElementById('srv-dim-table'); if(!tbl) return;
-            const cfg = SRV_DIMS[dim] || SRV_DIMS.dispositivo;
-
-            // Agrupar
-            const groups = {};
-            data.forEach(s => {
-                const key = cfg.fn(s) || '(Sin definir)';
-                if (!groups[key]) groups[key] = { count:0, precio:0, kpis:[], entregas:[], resultados:{}, sin:0 };
-                const g = groups[key];
-                g.count++;
-                g.precio += srvPrecio(s);
-                const kp = srvKpiDiag(s);
-                if (kp !== null) g.kpis.push(kp);
-                const res = srvResultado(s);
-                g.resultados[res] = (g.resultados[res]||0)+1;
-                if (/sin repar|no repar|irrepar/i.test(res)) g.sin++;
-                const fr=srvFecha(s), fv=srvFechaVenta(s);
-                if (fr&&fv) g.entregas.push(Math.max(0,Math.round((fv-fr)/(1000*60*60*24))));
-            });
-
-            const sorted = Object.entries(groups).sort((a,b)=>b[1].count-a[1].count);
-            const kpiCol = v => v<=1?'var(--neon-green)':v<=3?'var(--neon-orange)':'#ef4444';
-
-            tbl.innerHTML = `
-            <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.3);position:sticky;top:0;z-index:2;">
-                <th style="padding:6px 10px;text-align:left;">${cfg.label}</th>
-                <th style="padding:6px 10px;text-align:right;">📋 Qty</th>
-                <th style="padding:6px 10px;text-align:right;">💲 P.Servicio Total</th>
-                <th style="padding:6px 10px;text-align:right;">💲 Precio Prom.</th>
-                <th style="padding:6px 10px;text-align:right;">🎯 KPI Diag.</th>
-                <th style="padding:6px 10px;text-align:right;">🚚 T.Entrega</th>
-                <th style="padding:6px 10px;text-align:right;">✅ Reparados</th>
-                <th style="padding:6px 10px;text-align:right;">🔴 Sin Rep.</th>
-                <th style="padding:6px 10px;text-align:left;">📊 Top Resultado</th>
-            </tr></thead>
-            <tbody>${sorted.map(([key,g])=>{
-                const pProm  = g.count ? g.precio/g.count : 0;
-                const kpiAvg = g.kpis.length ? g.kpis.reduce((a,b)=>a+b,0)/g.kpis.length : null;
-                const entAvg = g.entregas.length ? g.entregas.reduce((a,b)=>a+b,0)/g.entregas.length : null;
-                const repOk  = Object.entries(g.resultados).filter(([k])=>/repar|exitoso|completo/i.test(k)).reduce((a,[,v])=>a+v,0);
-                const topRes = Object.entries(g.resultados).sort((a,b)=>b[1]-a[1])[0];
-                const pctSin = g.count ? Math.round(g.sin/g.count*100) : 0;
-                return `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
-                    <td style="padding:5px 10px;font-weight:500;">${key}</td>
-                    <td style="padding:5px 10px;text-align:right;color:var(--neon-blue);">${g.count}</td>
-                    <td style="padding:5px 10px;text-align:right;color:var(--neon-green);">${formatCurrency(g.precio)}</td>
-                    <td style="padding:5px 10px;text-align:right;color:var(--neon-green);">${formatCurrency(pProm)}</td>
-                    <td style="padding:5px 10px;text-align:right;font-weight:bold;color:${kpiAvg!==null?kpiCol(kpiAvg):'inherit'};">${kpiAvg!==null?kpiAvg.toFixed(1)+' d':'—'}</td>
-                    <td style="padding:5px 10px;text-align:right;color:var(--neon-lila);">${entAvg!==null?entAvg.toFixed(1)+' d':'—'}</td>
-                    <td style="padding:5px 10px;text-align:right;color:var(--neon-green);">${repOk}</td>
-                    <td style="padding:5px 10px;text-align:right;color:${pctSin>30?'#ef4444':'var(--text-mute)'};">${g.sin} (${pctSin}%)</td>
-                    <td style="padding:5px 10px;font-size:11px;color:var(--text-mute);">${topRes?`${topRes[0]} (${topRes[1]})`:'—'}</td>
-                </tr>`;
-            }).join('')}</tbody>`;
-        }
-
-        // ── Tablero de Folios Recepción ──────────────────────────────────
-        function buildFoliosBoard() {
-            const tbl = document.getElementById('folios-board-table'); if(!tbl) return;
-            const hoy = new Date(); hoy.setHours(0,0,0,0);
-
-            // Usar TODOS los servicios (no filtrados por fecha para ver histórico)
-            const allSrv = appState.serviciosData || [];
-
-            const rows = allSrv.map(s => {
-                const folio    = srvFolioRec(s);
-                const estatus  = srvEstatus(s);  // Abierto / Cerrado
-                const validez  = srvValidez(s);
-                const fEntrega = srvFechaEntrega(s);
-                const fRec     = srvFecha(s);
-                const fVenta   = srvFechaVenta(s);
-
-                // Vigencia: comparar hoy vs fecha entrega diagnóstico
-                let vigencia = 'Sin fecha';
-                let diasAlerta = null;
-                if (fEntrega) {
-                    const fe = new Date(fEntrega); fe.setHours(0,0,0,0);
-                    const diffD = Math.round((hoy - fe)/(1000*60*60*24));
-                    if (diffD > 0) { vigencia = 'Vencido'; diasAlerta = diffD; }
-                    else           { vigencia = 'Vigente'; diasAlerta = diffD; }
-                }
-
-                return { s, folio, estatus, validez, vigencia, diasAlerta, fRec, fVenta, fEntrega };
-            }).filter(r => r.folio); // solo los que tienen folio
-
-            // Guardar para filtro
-            window._foliosRows = rows;
-            renderFoliosBoard(rows, srvState.folioFilter);
-        }
-
-        function filterFoliosBoard(filter, btn) {
-            srvState.folioFilter = filter;
-            document.querySelectorAll('.srv-folio-filter-btn').forEach(b=>b.classList.remove('active'));
-            if (btn) btn.classList.add('active');
-            if (window._foliosRows) renderFoliosBoard(window._foliosRows, filter);
-        }
-
-        function renderFoliosBoard(rows, filter) {
-            const tbl = document.getElementById('folios-board-table'); if(!tbl) return;
-
-            let visible = rows;
-            if (filter === 'abiertos')  visible = rows.filter(r=> /abierto/i.test(r.estatus));
-            if (filter === 'vencidos')  visible = rows.filter(r=> r.vigencia === 'Vencido');
-            if (filter === 'validos')   visible = rows.filter(r=> /válido|valido|valid/i.test(r.validez));
-            if (filter === 'invalidos') visible = rows.filter(r=> /inválido|invalido|no válido/i.test(r.validez));
-
-            const cnt = document.getElementById('folios-board-count');
-            if (cnt) cnt.textContent = `${visible.length} folios`;
-
-            if (visible.length === 0) {
-                tbl.innerHTML = `<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--text-mute);">Sin folios para este filtro</td></tr>`;
-                return;
-            }
-
-            // Ordenar: vencidos primero, luego por días de alerta desc
-            visible.sort((a,b) => {
-                if (a.vigencia==='Vencido' && b.vigencia!=='Vencido') return -1;
-                if (a.vigencia!=='Vencido' && b.vigencia==='Vencido') return 1;
-                return (b.diasAlerta||0) - (a.diasAlerta||0);
-            });
-
-            const fmtDate = d => d ? new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'}) : '—';
-            const estiloVigencia = v =>
-                v==='Vencido' ? 'color:#ef4444;font-weight:bold;' :
-                v==='Vigente' ? 'color:var(--neon-green);' : 'color:var(--text-mute);';
-            const estiloEstatus  = e =>
-                /abierto/i.test(e) ? 'color:var(--neon-orange);font-weight:bold;' : 'color:var(--text-mute);';
-            const estiloValidez  = v =>
-                /válido|valido|valid/i.test(v) && !/inválido/i.test(v) ? 'color:var(--neon-green);' : 'color:#ef4444;';
-
-            tbl.innerHTML = `
-            <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.3);position:sticky;top:0;z-index:2;">
-                <th style="padding:6px 10px;">📘 Folio Rec.</th>
-                <th style="padding:6px 10px;">🖥️ Dispositivo</th>
-                <th style="padding:6px 10px;">®️ Marca / Modelo</th>
-                <th style="padding:6px 10px;">1️⃣ Tipo Sol.</th>
-                <th style="padding:6px 10px;text-align:center;">✅ Validez</th>
-                <th style="padding:6px 10px;text-align:center;">🔄️ Estatus</th>
-                <th style="padding:6px 10px;text-align:center;">⌛ Vigencia</th>
-                <th style="padding:6px 10px;text-align:center;">⚠️ Alerta</th>
-                <th style="padding:6px 10px;">📅 Recepción</th>
-                <th style="padding:6px 10px;">📅 F. Entrega Diag.</th>
-            </tr></thead>
-            <tbody>${visible.map(r => {
-                const s = r.s;
-                const alertaCell = r.vigencia==='Vencido'
-                    ? `<span style="color:#ef4444;font-size:11px;font-weight:bold;">🚨 +${r.diasAlerta}d</span>`
-                    : r.diasAlerta!==null && r.diasAlerta<=0
-                        ? `<span style="color:var(--neon-orange);font-size:11px;">⏰ ${Math.abs(r.diasAlerta)}d restantes</span>`
-                        : `<span style="color:var(--text-mute);">—</span>`;
-                const rowBg = r.vigencia==='Vencido' && /abierto/i.test(r.estatus)
-                    ? 'background:rgba(239,68,68,0.06);' : '';
-                return `<tr style="border-top:1px solid rgba(255,255,255,0.05);${rowBg}">
-                    <td style="padding:5px 10px;"><span class="badge-folio badge-recep">📘${r.folio}</span></td>
-                    <td style="padding:5px 10px;">${srvDispositivo(s)||'—'}</td>
-                    <td style="padding:5px 10px;font-size:11px;">${srvMarca(s)||'—'}${srvModelo(s)?` / ${srvModelo(s)}`:''}</td>
-                    <td style="padding:5px 10px;font-size:11px;">${srvTipoSol(s)||'—'}</td>
-                    <td style="padding:5px 10px;text-align:center;${estiloValidez(r.validez)}">${r.validez||'—'}</td>
-                    <td style="padding:5px 10px;text-align:center;${estiloEstatus(r.estatus)}">${r.estatus}</td>
-                    <td style="padding:5px 10px;text-align:center;${estiloVigencia(r.vigencia)}">${r.vigencia}</td>
-                    <td style="padding:5px 10px;text-align:center;">${alertaCell}</td>
-                    <td style="padding:5px 10px;font-size:11px;color:var(--text-mute);">${fmtDate(r.fRec)}</td>
-                    <td style="padding:5px 10px;font-size:11px;color:${r.vigencia==='Vencido'?'#ef4444':'var(--text-mute)'};">${fmtDate(r.fEntrega)}</td>
-                </tr>`;
-            }).join('')}</tbody>`;
-        }
-
-
-        // ─── Toggle collapsible sections ──────────────────────────────────────
-        function toggleCollapse(bodyId, arrowId) {
-            const body  = document.getElementById(bodyId);
-            const arrow = document.getElementById(arrowId);
-            if (!body) return;
-            const closing = !body.classList.contains('collapsed');
-            body.classList.toggle('collapsed', closing);
-            if (arrow) arrow.style.transform = closing ? 'rotate(-90deg)' : '';
-        }
-
-
-        // Función helper para formatear moneda
-        function formatCurrency(value) {
-            const num = parseFloat(value) || 0;
-            return '$' + num.toLocaleString('es-MX', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-        }
-
-        // Función para reconectar sheets (ahora solo refresca los datos)
-        function reconnectSheets() {
-            console.log('Reconectando con Google Sheets...');
-            loadData();
-        }
-
-        // Función para refrescar datos
-        function refreshData() {
-            loadData();
-        }
-
-        // Función para aplicar configuración
-        function applyConfig() {
-            // Guardar configuración
-            appState.config.periodo = document.getElementById('periodo').value;
-            appState.config.agregacion = document.getElementById('agregacion').value;
-            appState.config.acumulado = document.getElementById('acumulacion').value === 'acumulado';
-            
-            console.log('⚙️ APLICANDO CONFIGURACIÓN:');
-            console.log('  Periodo:', appState.config.periodo);
-            console.log('  Agregación:', appState.config.agregacion);
-            console.log('  Acumulado:', appState.config.acumulado);
-            
-            // updateVentasView llama a calcularCostoDeVentas internamente con el rango correcto
-            updateVentasView();
-            
-            alert('✅ Configuración aplicada. El dashboard ahora muestra datos de: ' + appState.config.periodo.replace('-', ' ').toUpperCase());
-        }
-
-        // Función para resetear configuración
-        function resetConfig() {
-            document.getElementById('periodo').value = 'este-mes';
-            document.getElementById('agregacion').value = 'dia';
-            document.getElementById('acumulacion').value = 'acumulado';
-            document.getElementById('metric-total-venta').checked = true;
-            document.getElementById('metric-total-pagos').checked = true;
-            document.getElementById('metric-costo-venta').checked = false;
-            document.getElementById('metric-utilidad-bruta').checked = false;
-            
-            alert('Configuración reseteada a valores por defecto');
-        }
-
-        // Inicializar al cargar la página
-        window.onload = () => {
-            console.log('🚀 Iniciando Hospital del Móvil Dashboard...');
-            
-            // Activar la sección de Ventas por defecto
-            const ventasHeader = document.querySelector('.nav-section-header');
-            if (ventasHeader) {
-                ventasHeader.classList.add('active');
-            }
-            
-            loadData();
-        };
-    </script>
-</body>
-
-</html>
+            dispositivo: { label:'🖥️ Dispositivo', fn:s
