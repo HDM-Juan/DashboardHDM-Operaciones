@@ -1,0 +1,252 @@
+# CHANGELOG v5.1 — HDM Dashboard (CORRECCIONES FINALES)
+## Fecha: 2026-02-17
+
+---
+
+## 🎯 Problemas solucionados
+
+### 1. ✅ Gráfica mixta (Análisis por Dimensión) - Corregida completamente
+
+**Problema:** La gráfica no se actualizaba al cambiar la dimensión en el selector
+
+**Causas identificadas:**
+- Event listener duplicado: uno en el HTML (`onchange="updateMixedChart()"`) y otro en JavaScript
+- Esto causaba dos llamadas: una sin parámetros y otra con parámetros
+
+**Solución aplicada:**
+- Eliminado listener duplicado del `window.onload` (líneas 3899-3908)
+- Mantenido solo el `onchange="updateMixedChart()"` en el HTML (más simple y directo)
+- Añadidos logs de debug extensivos para diagnóstico:
+  ```
+  📊 updateMixedChart ejecutando...
+  ⚠️ Canvas chart-mixed-dim no encontrado (si hay problema)
+  📊 No se pasaron datos filtrados, obteniendo de appState...
+  📊 Datos a graficar: N registros
+  📊 Dimensión seleccionada: dispositivo
+  📊 Labels: N | Datasets: 3
+  ✅ Gráfica mixta actualizada (o creada por primera vez)
+  ```
+
+**Cómo funciona ahora:**
+1. Usuario cambia selector → `onchange="updateMixedChart()"`
+2. Función obtiene datos de `appState.ventasFiltradas` si no se pasan
+3. Agrupa por dimensión seleccionada (Fecha, Dispositivo, Marca, etc.)
+4. Actualiza o crea la gráfica con 3 datasets:
+   - 💲 Total Venta (línea verde, rellena)
+   - 💹 Margen Contrib. (barras azules)
+   - 📄 Nº Folios (línea amarilla, eje derecho)
+
+---
+
+### 2. ✅ Toggles de periodos comparativos - Funcionando correctamente
+
+**Problema:** Al activar "Periodo anterior" o "Mismo mes año ant." no aparecían las líneas
+
+**Causas identificadas:**
+- `togglePeriodo()` llamaba a `updateVentasView()` completa (lento e ineficiente)
+- `injectPeriodDatasets()` usaba `periodoActual.start` que no existe
+- La lógica de processVentas asumía formato de labels incorrecto
+
+**Solución aplicada:**
+- `togglePeriodo()` ahora llama directamente a `injectPeriodDatasets()` con datos actuales
+- Reescrita completamente la función `processVentas()`:
+  - Usa `parseFecha()` y `formatFecha()` consistentemente
+  - Busca la fecha real de cada label en los datos originales
+  - Calcula el offset correctamente restando días
+  - Logs de debug:
+    ```
+    📊 injectPeriodDatasets ejecutando... {anterior: true, anio: false}
+    🔄 Procesando periodo con offset: 30 días
+    ✅ Periodo offset 30: 15 días con ventas
+    ✅ Añadido periodo anterior
+    ```
+
+**Cómo funciona ahora:**
+1. Usuario activa toggle → `dimState.periodos.anterior = true`
+2. `togglePeriodo()` → `injectPeriodDatasets()`
+3. Remueve datasets previos con `_isPeriodo: true`
+4. Para cada día del eje X actual:
+   - Obtiene la fecha real del label
+   - Resta 30 días (anterior) o 365 días (año anterior)
+   - Busca ventas en esa fecha desplazada
+   - Añade el total al dataset
+5. Crea líneas punteadas:
+   - **Morado** (#9C27B0, dash [5,4]) para periodo anterior
+   - **Azul** (#2196F3, dash [3,3]) para mismo mes año anterior
+6. Chart.update() → aparecen las líneas comparativas
+
+---
+
+### 3. ✅ Modal de configuración - Implementado
+
+**Antes:** Clic en "⚙️ Config" cambiaba toda la vista a la sección de configuración
+
+**Ahora:** Se abre un modal flotante sobre el contenido actual
+
+**Características del modal:**
+- Fondo oscuro semitransparente (`rgba(0,0,0,0.8)`)
+- Efecto blur (`backdrop-filter: blur(6px)`)
+- Modal centrado con borde rojo (#b22222)
+- Header con título amarillo y botón ✕ para cerrar
+- Body con:
+  - Selector de Periodo (Este Mes, Últimos 7 días, etc.)
+  - Selector de Agregación (Por Folio, Día, Semana, Mes)
+  - Selector de Acumulación (Acumulado / Sin Acumular)
+  - Botón "Recargar Datos desde Google Sheets"
+
+**Cómo se cierra:**
+- Botón ✕ en el header
+- Click fuera del modal (en el overlay)
+- Próximamente: Tecla ESC
+
+**Funciones:**
+```javascript
+openConfigModal()    // Añade clase 'open' al overlay
+closeConfigModal()   // Remueve clase 'open'
+applyConfig()        // Aplica cambios (llamado con onchange)
+```
+
+**CSS añadido:**
+- `.config-modal-overlay` (flex centered, z-index: 9999)
+- `.config-modal` (max-width: 700px, scroll si necesario)
+- `.config-modal-header` (flex, gradiente rojo)
+- `.config-modal-close` (botón circular con hover)
+- `.config-modal-body` (padding 25px)
+
+---
+
+## 📊 Logs de debug añadidos
+
+Los logs ahora cubren todo el pipeline de datos:
+
+### Carga de datos:
+```
+📥 Cargando Ventas...
+✅ Ventas: 1738 registros cargados
+```
+
+### Filtrado:
+```
+🔄 updateVentasView iniciando...
+📊 appState.ventasData: 1738 registros
+📅 Periodo: este-mes → 2026-02-01 a 2026-02-17
+✅ Después filtro fecha+validez: 22 registros
+🔍 filterVentasByDim | entrada: 22 registros
+✅ filterVentasByDim | salida: 22 registros
+✅ Después filtro dimensiones: 22 registros
+```
+
+### Gráficas:
+```
+📊 updateMixedChart ejecutando...
+📊 Datos a graficar: 22 registros
+📊 Dimensión seleccionada: dispositivo
+📊 Labels: 5 | Datasets: 3
+✅ Gráfica mixta actualizada
+```
+
+### Periodos comparativos:
+```
+🔘 Toggle periodo: anterior → true
+📊 injectPeriodDatasets ejecutando... {anterior: true, anio: false}
+🔄 Procesando periodo con offset: 30 días
+✅ Periodo offset 30: 15 días con ventas
+✅ Añadido periodo anterior
+```
+
+---
+
+## 🔧 Cambios técnicos
+
+### JavaScript modificado:
+- **updateMixedChart()**: +20 líneas de logs
+- **injectPeriodDatasets()**: Completamente reescrita
+- **processVentas()**: Lógica corregida para manejar fechas correctamente
+- **togglePeriodo()**: Ahora eficiente, solo actualiza gráfica
+- **openConfigModal() / closeConfigModal()**: Nuevas funciones
+
+### CSS añadido (~60 líneas):
+- Modal overlay y contenedor
+- Header y botón de cierre
+- Body con padding y scroll
+- Hover states y transiciones
+
+### HTML añadido:
+- Modal completo con estructura de 3 niveles
+- Selectores de periodo, agregación, acumulación
+- Botón de recarga de datos
+
+---
+
+## 🧪 Testing recomendado
+
+### 1. Gráfica mixta:
+```
+✓ Ir a sección Ventas
+✓ Scrollear hasta "📈 Análisis por Dimensión"
+✓ Abrir consola (F12)
+✓ Cambiar selector de "📅 Fecha" a "🖥️ Dispositivo"
+✓ Verificar en consola:
+  - "📊 updateMixedChart ejecutando..."
+  - "📊 Dimensión seleccionada: dispositivo"
+  - "✅ Gráfica mixta actualizada"
+✓ La gráfica debe mostrar barras por dispositivo
+```
+
+### 2. Periodos comparativos:
+```
+✓ Abrir consola (F12)
+✓ Activar "● Periodo anterior"
+✓ Verificar en consola:
+  - "🔘 Toggle periodo: anterior → true"
+  - "📊 injectPeriodDatasets ejecutando..."
+  - "✅ Añadido periodo anterior"
+✓ Debe aparecer línea morada punteada
+✓ Activar "● Mismo mes año ant."
+✓ Debe aparecer línea azul punteada
+✓ Desactivar ambos → líneas desaparecen
+```
+
+### 3. Modal de configuración:
+```
+✓ Clic en "⚙️ Config" en menú superior
+✓ Modal debe aparecer con animación
+✓ Cambiar periodo a "Últimos 7 días"
+✓ Cerrar con ✕
+✓ Los datos deben actualizarse (ver consola)
+✓ Repetir y cerrar con click fuera
+```
+
+---
+
+## 📝 Estado de características
+
+✅ Header compacto horizontal (70px)
+✅ Menú de navegación con 6 secciones
+✅ Modal de configuración funcional
+✅ Gráfica mixta con selector de dimensiones
+✅ Periodos comparativos (anterior / año anterior)
+✅ Filtros de validez corregidos
+✅ CORS proxy con fallback
+✅ Logs de debug extensivos
+✅ Estilos verde-tenue legibles
+
+---
+
+## 🚀 Próximas mejoras
+
+- [ ] Tecla ESC para cerrar modal
+- [ ] Animación de entrada/salida del modal
+- [ ] Guardar configuración en localStorage
+- [ ] Tooltips en líneas de periodos comparativos
+- [ ] Exportar gráficas a imagen
+- [ ] Vista de comparación lado a lado
+- [ ] Alertas cuando periodos no tienen datos
+
+---
+
+## 📄 Archivos
+- **index.html**: 3,947 líneas
+- Dashboard completo con todas las correcciones
+- JavaScript válido (verificado con Node.js)
+- CSS sin conflictos
