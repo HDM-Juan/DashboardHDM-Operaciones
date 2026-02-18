@@ -1769,7 +1769,25 @@
                 //     `Actualizado: ${new Date().toLocaleString('es-MX')}`;
 
                 // Actualizar todas las vistas
+                console.log('✅ Activando sección de Ventas por defecto...');
+                
+                // Asegurar que la sección de Ventas esté activa
+                const ventasSection = document.getElementById('section-ventas');
+                if (ventasSection) {
+                    ventasSection.classList.add('active-section');
+                    console.log('✅ Sección de Ventas activada');
+                }
+                
+                // Activar el header de Ventas en el menú
+                const ventasHeaders = document.querySelectorAll('.nav-section-header');
+                if (ventasHeaders[0]) {
+                    ventasHeaders[0].classList.add('active');
+                    console.log('✅ Header de Ventas activado');
+                }
+                
+                // Actualizar vista de ventas
                 updateVentasView();
+                console.log('✅ updateVentasView() ejecutado');
 
             } catch (error) {
                 console.error('Error al cargar datos:', error);
@@ -2179,7 +2197,10 @@
             updateDonutTriple(validVentas, porFecha);
 
             // ── 11. Gráfica mixta ──
+            console.log('🎨 Actualizando gráfica mixta...');
             updateMixedChart(validVentas);
+            
+            console.log('✅ updateVentasView completado');
         }
 
         // ========================================
@@ -2589,6 +2610,10 @@
 
         // ── Renderizar filas (se llama también al re-ordenar) ─────────────
         function renderVentasTableRows(data) {
+            console.log('📋 renderVentasTableRows() ejecutando con', data?.length || 0, 'registros');
+            console.log('📊 appState.costoVentasData disponible:', !!appState.costoVentasData);
+            console.log('📊 Total costos de ventas:', appState.costoVentasData?.costoVentas?.length || 0);
+            
             if (!data) return;
             tblState._lastData = data;
 
@@ -2648,8 +2673,35 @@
                     totalVenta: `<td style="text-align:right;color:var(--neon-green);font-weight:600;">💲${formatCurrency(monto)}</td>`,
                     totalPagos: `<td style="text-align:right;color:var(--neon-lila);">💸${formatCurrency(pagos)}</td>`,
                     validez:    `<td style="color:${colorV};">${validez}</td>`,
-                    costoVenta: (() => { const f=row['Folio Venta']; const cv=(appState.costoVentasData?.costoVentas||[]).filter(c=>c.folioRelacionado===f).reduce((s,c)=>s+c.monto,0); return `<td style="text-align:right;color:var(--neon-orange);">💰${formatCurrency(cv)}</td>`; })(),
-                    utBruta:    (() => { const f=row['Folio Venta']; const cv=(appState.costoVentasData?.costoVentas||[]).filter(c=>c.folioRelacionado===f).reduce((s,c)=>s+c.monto,0); const ub=parseMonto(row['Total Venta'])-cv; return `<td style="text-align:right;color:${ub>=0?'var(--neon-blue)':'#ef4444'};">💹${formatCurrency(ub)}</td>`; })(),
+                    costoVenta: (() => { 
+                        const f = row['Folio Venta'];
+                        const costosRelacionados = (appState.costoVentasData?.costoVentas || []).filter(c => c.folioRelacionado === f);
+                        const cv = costosRelacionados.reduce((s,c) => s + c.monto, 0);
+                        
+                        // Log solo para el primer folio (evitar spam)
+                        if (folio === sorted[0]['Folio Venta']) {
+                            console.log('💰 Costo Venta para', f, ':');
+                            console.log('  - Total costos disponibles:', appState.costoVentasData?.costoVentas?.length || 0);
+                            console.log('  - Costos relacionados a este folio:', costosRelacionados.length);
+                            console.log('  - Monto total:', formatCurrency(cv));
+                            if (costosRelacionados.length > 0) {
+                                console.log('  - Detalle:', costosRelacionados.map(c => ({
+                                    egreso: c['Folio Egreso'],
+                                    monto: formatCurrency(c.monto),
+                                    anticipo: c['Anticipo'],
+                                    recepcion: c['Recepción']
+                                })));
+                            }
+                        }
+                        
+                        return `<td style="text-align:right;color:var(--neon-orange);">💰${formatCurrency(cv)}</td>`; 
+                    })(),
+                    utBruta:    (() => { 
+                        const f = row['Folio Venta']; 
+                        const cv = (appState.costoVentasData?.costoVentas || []).filter(c => c.folioRelacionado === f).reduce((s,c) => s + c.monto, 0); 
+                        const ub = parseMonto(row['Total Venta']) - cv; 
+                        return `<td style="text-align:right;color:${ub >= 0 ? 'var(--neon-blue)' : '#ef4444'};">💹${formatCurrency(ub)}</td>`; 
+                    })(),
                 };
 
                 // ── Fila principal ───────────────────────────────────────
@@ -2893,6 +2945,7 @@
                     }
                 }
             });
+            console.log('✅ Gráfica principal de ventas creada, window._ventasMainChart:', !!window._ventasMainChart);
 
             updateProyeccion(allDates, dV, dCV, dIns, dGA, dGF);
         }
@@ -3578,6 +3631,8 @@
             dimState.periodos[periodo] = !dimState.periodos[periodo];
             btn.classList.toggle('on', dimState.periodos[periodo]);
             console.log('🔘 Toggle periodo:', periodo, '→', dimState.periodos[periodo]);
+            console.log('📊 window._ventasMainChart existe:', !!window._ventasMainChart);
+            console.log('📊 appState.ventasData existe:', !!appState.ventasData, 'registros:', appState.ventasData?.length);
             
             // Actualizar gráfica inmediatamente
             if (window._ventasMainChart && appState.ventasData) {
@@ -3590,8 +3645,12 @@
                     }
                     return true;
                 });
+                console.log('📊 Ventas válidas para periodos:', porFecha.length);
                 const rangoFechas = calcularRangoFechas(appState.config.periodo || 'este-mes');
+                console.log('📊 Rango de fechas:', rangoFechas);
                 injectPeriodDatasets(window._ventasMainChart, porFecha, rangoFechas);
+            } else {
+                console.warn('⚠️ No se puede inyectar periodos - chart o datos faltantes');
             }
         }
 
@@ -3938,6 +3997,31 @@
             // Activar la sección de Ventas por defecto
             const ventasHeader = document.querySelector('.nav-section-header');
             if (ventasHeader) ventasHeader.classList.add('active');
+            
+            // Verificar que elementos clave estén visibles
+            setTimeout(() => {
+                console.log('🔍 Verificación de elementos visuales:');
+                const chartMixedCanvas = document.getElementById('chart-mixed-dim');
+                const chartVentasCanvas = document.getElementById('chart-ventas-main');
+                const dimSelector = document.getElementById('dim-axis-selector');
+                const togglePActual = document.getElementById('toggle-p-actual');
+                const togglePAnterior = document.getElementById('toggle-p-anterior');
+                const togglePAnio = document.getElementById('toggle-p-anio');
+                
+                console.log('  chart-mixed-dim:', !!chartMixedCanvas, 'visible:', chartMixedCanvas?.offsetParent !== null);
+                console.log('  chart-ventas-main:', !!chartVentasCanvas, 'visible:', chartVentasCanvas?.offsetParent !== null);
+                console.log('  dim-axis-selector:', !!dimSelector, 'visible:', dimSelector?.offsetParent !== null);
+                console.log('  toggle-p-actual:', !!togglePActual, 'visible:', togglePActual?.offsetParent !== null);
+                console.log('  toggle-p-anterior:', !!togglePAnterior, 'visible:', togglePAnterior?.offsetParent !== null);
+                console.log('  toggle-p-anio:', !!togglePAnio, 'visible:', togglePAnio?.offsetParent !== null);
+                
+                if (!chartMixedCanvas || chartMixedCanvas.offsetParent === null) {
+                    console.error('❌ Gráfica mixta NO es visible');
+                }
+                if (!togglePActual || togglePActual.offsetParent === null) {
+                    console.error('❌ Toggles de periodo NO son visibles');
+                }
+            }, 500);
             
             loadData();
         };
