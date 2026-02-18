@@ -1,0 +1,339 @@
+# CHANGELOG v5.3 — HDM Dashboard (DEBUGGING EGRESOS RELACIONADOS)
+## Fecha: 2026-02-17
+
+---
+
+## 🔍 Problema reportado
+
+> "tampoco puedo ver los egresos relacionados a la venta en la tabla de"
+
+---
+
+## 🛠️ Logs de diagnóstico añadidos
+
+Para identificar por qué no se muestran los egresos relacionados en la tabla de ventas, se añadieron logs extensivos en 3 puntos clave:
+
+---
+
+## 📊 Nivel 1: Renderización de la tabla
+
+**Función:** `renderVentasTableRows()`
+
+```javascript
+📋 renderVentasTableRows() ejecutando con 22 registros
+📊 appState.costoVentasData disponible: true
+📊 Total costos de ventas: 13
+```
+
+**Qué verifica:**
+- La función se está ejecutando
+- Hay datos para mostrar
+- `appState.costoVentasData` existe y tiene datos
+
+---
+
+## 📊 Nivel 2: Cálculo de costos por folio
+
+**Para el primer folio de la tabla:**
+
+```javascript
+💰 Costo Venta para V-2024-0123:
+  - Total costos disponibles: 13
+  - Costos relacionados a este folio: 2
+  - Monto total: $1,250.00
+  - Detalle: [
+      {
+        egreso: "E-2024-0045",
+        monto: "$850.00",
+        anticipo: "A-2024-0012",
+        recepcion: null
+      },
+      {
+        egreso: "E-2024-0046",
+        monto: "$400.00",
+        anticipo: "A-2024-0012",
+        recepcion: null
+      }
+    ]
+```
+
+**Qué verifica:**
+- Cuántos costos totales hay disponibles
+- Cuántos están relacionados a este folio específico
+- El monto total calculado
+- El detalle de cada egreso relacionado (folio, monto, anticipo, recepción)
+
+---
+
+## 📊 Nivel 3: Análisis de costos (ya existente, mejorado)
+
+En `updateVentasView()` después de calcular costos:
+
+```javascript
+✅ RESULTADO ANÁLISIS DE COSTOS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 Egresos totales: 830
+❌ Excluidos (¿incluido?=no): 0
+❌ Excluidos (filtro validez): 0
+📅 Excluidos (fuera de rango): 812
+✅ Egresos en periodo: 18
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💸 Costo de Ventas: 13 registros → $1,719.00
+🔧 Insumos del Mes: 2 registros → $85.00
+📋 Gastos Admin: 3 registros → $126.00
+🔄 Extracciones (flujo): 0 registros → $0.00
+💵 Otros Ingresos (flujo): 0 registros → $0.00
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📝 Ejemplos de Costo de Ventas: [
+  { folio: "E-2024-0045", monto: "$850.00", relacionado: "V-2024-0123" },
+  { folio: "E-2024-0046", monto: "$400.00", relacionado: "V-2024-0123" },
+  { folio: "E-2024-0047", monto: "$200.00", relacionado: "V-2024-0124" }
+]
+```
+
+**Qué verifica:**
+- Total de egresos disponibles
+- Cuántos fueron excluidos y por qué
+- Cuántos están dentro del periodo
+- Cantidad y monto de cada categoría
+- Ejemplos de costos de ventas con sus folios relacionados
+
+---
+
+## 🧪 Cómo diagnosticar el problema
+
+### **Paso 1: Abrir consola (F12)**
+
+### **Paso 2: Recargar la página**
+
+### **Paso 3: Buscar estos logs en orden:**
+
+#### ✅ Si TODO funciona correctamente:
+
+```
+✅ Ventas: 1738 registros cargados
+✅ Egresos: 830 registros cargados
+
+🔍 CALCULANDO COSTOS DE VENTAS...
+📊 Total egresos disponibles: 830
+✅ Egresos en periodo: 18
+💸 Costo de Ventas: 13 registros → $1,719.00
+
+📋 renderVentasTableRows() ejecutando con 22 registros
+📊 appState.costoVentasData disponible: true
+📊 Total costos de ventas: 13
+
+💰 Costo Venta para V-2024-0123:
+  - Costos relacionados a este folio: 2
+  - Monto total: $1,250.00
+```
+
+En la tabla verás:
+- Columna "💰 Costo Venta" con valores como "$1,250.00"
+- Columna "💹 Ut. Bruta" con la utilidad calculada
+
+---
+
+#### ❌ Si HAY un problema, verás:
+
+**Problema 1: No hay egresos cargados**
+```
+❌ Egresos: 0 registros cargados
+```
+→ Las URLs de egresos no están funcionando
+
+**Problema 2: Todos los egresos están fuera del periodo**
+```
+✅ Egresos en periodo: 0
+📅 Excluidos (fuera de rango): 830
+```
+→ Las fechas de los egresos no coinciden con el periodo seleccionado
+
+**Problema 3: Egresos no se relacionan con ventas**
+```
+💸 Costo de Ventas: 0 registros → $0.00
+```
+→ Los folios de Anticipo/Recepción no coinciden entre Ventas y Egresos
+
+**Problema 4: Columna no visible**
+```
+📋 renderVentasTableRows() ejecutando con 22 registros
+📊 Total costos de ventas: 13
+💰 Costo Venta para V-2024-0123:
+  - Costos relacionados a este folio: 0
+  - Monto total: $0.00
+```
+→ Hay costos pero no se relacionan con este folio específico
+
+---
+
+## 🔎 Posibles causas y soluciones
+
+### **Causa 1: Folios no coinciden exactamente**
+
+**Problema:** 
+En Ventas aparece: `A-2024-0012` (con guiones)
+En Egresos aparece: `A20240012` (sin guiones)
+
+**Solución:**
+Normalizar los folios antes de comparar (próxima actualización)
+
+### **Causa 2: Nombres de columnas diferentes**
+
+**Problema:**
+Buscando `row['Folio Anticipo']` pero la columna se llama `row['Anticipo']`
+
+**Verificar en los logs:**
+```javascript
+- Detalle: [{
+    anticipo: null,  ← Si es null pero debería tener valor
+    recepcion: null
+  }]
+```
+
+### **Causa 3: Fechas fuera de rango**
+
+**Problema:**
+El periodo seleccionado es "Este Mes" (feb 2026)
+Pero los egresos tienen fechas de enero 2026
+
+**Verificar:**
+```
+📅 Periodo: este-mes → 2026-02-01 a 2026-02-17
+📅 Excluidos (fuera de rango): 812
+```
+
+**Solución:**
+Cambiar el periodo en Config a "Últimos 30 días" o "Este Año"
+
+### **Causa 4: Columna oculta manualmente**
+
+**Verificar:**
+En la tabla hay botones de columnas (📗 Folio, 📅 Fecha, etc.)
+Si "💰 Costo Venta" está deshabilitado → activarlo
+
+---
+
+## 🔧 Verificación paso a paso
+
+### **Test 1: Verificar datos cargados**
+```
+✓ Buscar "✅ Egresos: N registros cargados"
+✓ Si N = 0 → problema con URL de Google Sheets
+✓ Si N > 0 → continuar
+```
+
+### **Test 2: Verificar periodo**
+```
+✓ Buscar "📅 Periodo: este-mes → 2026-02-01 a 2026-02-17"
+✓ Buscar "✅ Egresos en periodo: N"
+✓ Si N = 0 → cambiar periodo en Config a "Este Año"
+```
+
+### **Test 3: Verificar relación**
+```
+✓ Buscar "💸 Costo de Ventas: N registros"
+✓ Si N = 0 → los folios no coinciden
+✓ Si N > 0 → continuar
+```
+
+### **Test 4: Verificar tabla**
+```
+✓ Buscar "📋 renderVentasTableRows() ejecutando"
+✓ Buscar "💰 Costo Venta para ..."
+✓ Verificar "Costos relacionados a este folio: N"
+✓ Si N = 0 para TODOS los folios → problema de vinculación
+```
+
+---
+
+## 📊 Lógica de vinculación
+
+Los egresos se relacionan con ventas de 2 formas:
+
+### **Forma 1: Por Folio Anticipo**
+```javascript
+// En Ventas
+Folio Venta: "V-2024-0123"
+Folio Anticipo: "A-2024-0012"
+
+// En Egresos
+Anticipo: "A-2024-0012"  ← Debe coincidir
+
+// Resultado
+Egreso se marca como "costo_venta" de "V-2024-0123"
+```
+
+### **Forma 2: Por Folio Recepción**
+```javascript
+// En Ventas
+Folio Venta: "V-2024-0123"
+Folio Recepción Final: "R-2024-0034"
+
+// En Egresos
+Recepción: "R-2024-0034"  ← Debe coincidir
+
+// Resultado
+Egreso se marca como "costo_venta" de "V-2024-0123"
+```
+
+---
+
+## 📝 Cambios técnicos
+
+### Archivos modificados:
+- **index.html** (4,031 líneas) - `+30 líneas de logs`
+
+### Funciones con logs añadidos:
+1. `renderVentasTableRows()` - Confirmación de ejecución y disponibilidad de datos
+2. `cellMap.costoVenta` - Detalle completo de vinculación por folio
+3. Ya existía: Análisis de costos en `updateVentasView()`
+
+### Información que ahora se muestra:
+- Total de costos disponibles globalmente
+- Costos relacionados a cada folio específico
+- Monto total por folio
+- Detalle de cada egreso (folio, monto, anticipo, recepción)
+
+---
+
+## 🚨 Próximos pasos
+
+**Comparte los logs de la consola:**
+
+1. **Captura o copia** el bloque completo de:
+   ```
+   ✅ RESULTADO ANÁLISIS DE COSTOS:
+   ...hasta...
+   📝 Ejemplos de Costo de Ventas: [...]
+   ```
+
+2. **Captura o copia** el bloque:
+   ```
+   💰 Costo Venta para V-XXXX-XXXX:
+   ...
+   ```
+
+3. **Toma captura** de la tabla mostrando las columnas visibles
+
+Con esta información podremos identificar exactamente:
+- Si los egresos están cargando
+- Si están en el periodo correcto
+- Si se están vinculando correctamente
+- Si la columna está visible
+
+---
+
+## ✅ Estado actual
+
+- [x] Logs de carga de egresos
+- [x] Logs de análisis de costos
+- [x] Logs de renderización de tabla
+- [x] Logs de vinculación por folio
+- [x] Detalle de cada egreso relacionado
+- [ ] Esperando feedback con logs de consola
+- [ ] Normalización de folios (próxima versión si es necesario)
+
+---
+
+**Próximo paso:** Recarga la página, abre consola (F12) y comparte los logs que aparecen en las secciones marcadas arriba.
