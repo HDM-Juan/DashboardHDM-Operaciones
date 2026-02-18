@@ -1,0 +1,120 @@
+# CHANGELOG v5 — HDM Dashboard
+## Fecha: 2026-02-17
+
+---
+
+## Problemas corregidos
+
+### 1. ✅ Gráfica de análisis por dimensión (mixta) corregida
+**Problema:** No se actualizaba al cambiar la dimensión en el selector
+**Solución:**
+- Añadido event listener al selector `#dim-axis-selector` que llama a `updateMixedChart()` cuando cambia
+- La gráfica ahora responde inmediatamente al cambiar entre Fecha, Recepción, Anticipo, Dispositivo, Marca, Modelo, etc.
+
+### 2. ✅ Toggles de periodos anteriores ahora funcionan
+**Problema:** Al activar "Periodo anterior" o "Mismo mes año ant." no se agregaban líneas a la gráfica
+**Solución:**
+- `togglePeriodo()` ahora llama directamente a `injectPeriodDatasets()` con los datos actuales
+- `injectPeriodDatasets()` mejorada:
+  - **Siempre** se ejecuta (antes solo si había periodos activos)
+  - Remueve datasets anteriores antes de añadir nuevos
+  - Usa las fechas del periodo actual para calcular los periodos desplazados
+  - Añade logs de debug: `📊 injectPeriodDatasets ejecutando...`
+  - Líneas punteadas:
+    - **Morado** (#9C27B0) para periodo anterior (30 días atrás)
+    - **Azul** (#2196F3) para mismo mes año anterior (365 días atrás)
+
+**Cómo funciona:**
+1. Usuario hace clic en toggle → `dimState.periodos.anterior = true`
+2. `togglePeriodo()` llama a `injectPeriodDatasets()`
+3. Se remueven datasets previos con `_isPeriodo: true`
+4. Se calculan las ventas desplazadas 30 o 365 días
+5. Se añaden como datasets tipo `line` con `borderDash` (punteadas)
+6. Chart se actualiza → aparecen las líneas comparativas
+
+### 3. ✅ Configuración ahora es modal popup
+**Antes:** Al hacer clic en "⚙️ Config" cambiaba de vista completamente
+**Ahora:** Se abre un modal flotante con fondo oscuro blur
+
+**Contenido del modal:**
+- Periodo de Análisis (selector)
+- Agregación (Por Folio, Día, Semana, Mes, Trimestre)
+- Acumulación (Acumulado / Sin Acumular)
+- Botón "Recargar Datos desde Google Sheets"
+
+**Características:**
+- Fondo oscuro semitransparente con `backdrop-filter: blur(6px)`
+- Modal centrado con borde rojo característico de HDM
+- Header con título amarillo y botón de cierre
+- Se cierra con:
+  - Botón ✕
+  - Click fuera del modal
+  - Tecla ESC (próxima implementación)
+- Los cambios se aplican automáticamente con `onchange="applyConfig()"`
+
+**Funciones nuevas:**
+```javascript
+openConfigModal()   // Abre el modal
+closeConfigModal()  // Cierra el modal
+```
+
+---
+
+## Archivos técnicos
+
+### CSS añadido (líneas ~542-602)
+```css
+.config-modal-overlay
+.config-modal
+.config-modal-header
+.config-modal-close
+.config-modal-body
+```
+
+### HTML añadido (después de línea 617)
+```html
+<div id="config-modal" class="config-modal-overlay">
+  <div class="config-modal">
+    <!-- Periodo, Agregación, Acumulación -->
+  </div>
+</div>
+```
+
+### JavaScript modificado
+- `togglePeriodo()`: Ahora actualiza gráfica directamente
+- `injectPeriodDatasets()`: Reescrita completamente (96 líneas)
+- `window.onload`: Añadido listener para selector de dimensión
+- Nuevas funciones: `openConfigModal()`, `closeConfigModal()`
+
+---
+
+## Testing recomendado
+
+1. **Gráfica mixta:**
+   - Ir a sección Ventas
+   - Scrollear hasta la gráfica "Análisis por Dimensión"
+   - Cambiar el selector de "📅 Fecha" a "🖥️ Dispositivo"
+   - Verificar que la gráfica se actualiza mostrando barras por dispositivo
+
+2. **Toggles de periodos:**
+   - Activar "● Periodo anterior" (debe aparecer línea morada punteada)
+   - Activar "● Mismo mes año ant." (debe aparecer línea azul punteada)
+   - Desactivar ambos (las líneas deben desaparecer)
+   - Verificar en consola los logs: `📊 injectPeriodDatasets ejecutando...`
+
+3. **Modal de configuración:**
+   - Hacer clic en "⚙️ Config" en el menú superior
+   - Verificar que se abre el modal (no cambia de vista)
+   - Cambiar el periodo a "Últimos 7 días"
+   - Cerrar con ✕ o click fuera
+   - Verificar que los datos se actualizan
+
+---
+
+## Próximas mejoras sugeridas
+
+- [ ] Añadir tecla ESC para cerrar modal
+- [ ] Animación de entrada/salida del modal
+- [ ] Guardar configuración en localStorage
+- [ ] Botón "Resetear configuración" en el modal
+- [ ] Tooltips en las líneas de periodos comparativos
