@@ -538,6 +538,68 @@
         .config-item select, .config-item input { width:100%; background:#fff; color:#374151; border:1px solid #d1d5db; padding:7px 12px; border-radius:7px; outline:none; }
         .btn-reset { background:linear-gradient(135deg,#e74c3c,#c0392b); color:#fff; border:none; padding:9px 18px; border-radius:8px; cursor:pointer; font-size:13px; transition:all 0.3s; }
         .btn-reset:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(231,76,60,0.35); }
+
+        /* ═══════════════════════════════════════════════════════
+           MODAL DE CONFIGURACIÓN
+        ═══════════════════════════════════════════════════════ */
+        .config-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .config-modal-overlay.open { display: flex; }
+        .config-modal {
+            background: #1a1a1a;
+            border: 2px solid var(--brand-red);
+            border-radius: 16px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            position: relative;
+        }
+        .config-modal-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid rgba(178,34,34,0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(178,34,34,0.15), transparent);
+        }
+        .config-modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: var(--neon-yellow);
+        }
+        .config-modal-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .config-modal-close:hover {
+            background: rgba(178,34,34,0.2);
+            color: var(--brand-red);
+        }
+        .config-modal-body {
+            padding: 25px 30px;
+        }
     </style>
 </head>
 
@@ -552,6 +614,64 @@
     <!-- Connection Status -->
     <div id="connection-status" class="connection-status" style="display: none;">
         <i class="fas fa-check-circle"></i> Conectado a Google Sheets
+    </div>
+
+    <!-- Modal de Configuración -->
+    <div id="config-modal" class="config-modal-overlay" onclick="if(event.target===this) closeConfigModal()">
+        <div class="config-modal">
+            <div class="config-modal-header">
+                <h2>⚙️ Configuración del Dashboard</h2>
+                <button class="config-modal-close" onclick="closeConfigModal()">&times;</button>
+            </div>
+            <div class="config-modal-body">
+                <div class="config-section">
+                    <h3>Periodo de Análisis</h3>
+                    <div class="config-row">
+                        <div class="config-item">
+                            <label>Periodo</label>
+                            <select id="periodo" onchange="applyConfig()">
+                                <option value="este-dia">Este Día</option>
+                                <option value="esta-semana">Esta Semana</option>
+                                <option value="esta-quincena">Esta Quincena</option>
+                                <option value="este-mes" selected>Este Mes</option>
+                                <option value="este-bimestre">Este Bimestre</option>
+                                <option value="este-trimestre">Este Trimestre</option>
+                                <option value="este-semestre">Este Semestre</option>
+                                <option value="este-ano">Este Año</option>
+                                <option value="ultimos-7">Últimos 7 días</option>
+                                <option value="ultimos-30">Últimos 30 días</option>
+                                <option value="ultimos-90">Últimos 90 días</option>
+                            </select>
+                        </div>
+
+                        <div class="config-item">
+                            <label>Agregación</label>
+                            <select id="agregacion" onchange="applyConfig()">
+                                <option value="folio">Por Folio</option>
+                                <option value="dia" selected>Por Día</option>
+                                <option value="semana">Por Semana</option>
+                                <option value="mes">Por Mes</option>
+                                <option value="trimestre">Por Trimestre</option>
+                            </select>
+                        </div>
+
+                        <div class="config-item">
+                            <label>Acumulación</label>
+                            <select id="acumulacion" onchange="applyConfig()">
+                                <option value="acumulado" selected>Acumulado</option>
+                                <option value="no-acumulado">Sin Acumular</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <button onclick="reconnectSheets(); closeConfigModal();" class="btn-reset" style="width:100%;">
+                        <i class="fas fa-sync-alt"></i> Recargar Datos desde Google Sheets
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="app-container">
@@ -594,7 +714,7 @@
                     <span>💸 Gastos</span>
                     <span class="nav-section-arrow">▼</span>
                 </div>
-                <div class="nav-section-header" onclick="toggleSection('configuracion')">
+                <div class="nav-section-header" onclick="openConfigModal()">
                     <span>⚙️ Config</span>
                     <span class="nav-section-arrow">▼</span>
                 </div>
@@ -3457,7 +3577,22 @@
         function togglePeriodo(periodo, btn) {
             dimState.periodos[periodo] = !dimState.periodos[periodo];
             btn.classList.toggle('on', dimState.periodos[periodo]);
-            updateVentasView();
+            console.log('🔘 Toggle periodo:', periodo, '→', dimState.periodos[periodo]);
+            
+            // Actualizar gráfica inmediatamente
+            if (window._ventasMainChart && appState.ventasData) {
+                const porFecha = appState.ventasData.filter(v => {
+                    const validez = (v['Validez'] || '').toString().trim().toLowerCase();
+                    if (validez.includes('invalid') || validez.includes('invalido') || 
+                        validez.includes('inválido') || validez.includes('cancelado') || 
+                        validez.includes('eliminado') || validez.includes('cancel')) {
+                        return false;
+                    }
+                    return true;
+                });
+                const rangoFechas = calcularRangoFechas(appState.config.periodo || 'este-mes');
+                injectPeriodDatasets(window._ventasMainChart, porFecha, rangoFechas);
+            }
         }
 
         // Función para rellenar opciones de dimensiones de forma dinámica
@@ -3581,13 +3716,23 @@
         // Gráfica mixta por dimensión
         let chartMixed = null;
         function updateMixedChart(filtered) {
+            console.log('📊 updateMixedChart ejecutando...');
             const ctx = document.getElementById('chart-mixed-dim');
-            if (!ctx) return;
+            if (!ctx) {
+                console.warn('⚠️ Canvas chart-mixed-dim no encontrado');
+                return;
+            }
+            
             if (!filtered) {
+                console.log('📊 No se pasaron datos filtrados, obteniendo de appState...');
                 const ventas = appState.ventasData || [];
                 filtered = filterVentasByDim(ventas);
             }
+            
+            console.log('📊 Datos a graficar:', filtered.length, 'registros');
+            
             const dim = document.getElementById('dim-axis-selector')?.value || 'fecha';
+            console.log('📊 Dimensión seleccionada:', dim);
 
             const dimMap = {
                 'fecha': r => (r['Fecha ef-Venta']||r['Fecha Venta']||'').substring(0,10),
@@ -3622,7 +3767,17 @@
                 { type: 'line', label: '📄 Nº Folios', data: dataFolios, borderColor: '#FFC107', backgroundColor: 'rgba(255,193,7,0.15)', borderWidth: 2.5, pointRadius: 4, fill: false, order: 1, yAxisID: 'y2' },
                 { type: 'line', label: '💲 Total Venta', data: dataVenta, borderColor: '#4CAF50', backgroundColor: 'rgba(76,175,80,0.12)', borderWidth: 2, fill: true, order: 3, yAxisID: 'y' },
             ];
-            if (chartMixed) { chartMixed.data.labels = labels; chartMixed.data.datasets = datasets; chartMixed.update(); return; }
+            
+            console.log('📊 Labels:', labels.length, '| Datasets:', datasets.length);
+            
+            if (chartMixed) { 
+                chartMixed.data.labels = labels; 
+                chartMixed.data.datasets = datasets; 
+                chartMixed.update(); 
+                console.log('✅ Gráfica mixta actualizada');
+                return; 
+            }
+            
             chartMixed = new Chart(ctx, {
                 type: 'bar',
                 data: { labels, datasets },
@@ -3637,47 +3792,138 @@
                     }
                 }
             });
+            console.log('✅ Gráfica mixta creada por primera vez');
         }
 
         // Inyectar periodos anteriores en la gráfica principal de ventas
         const _origUpdateVentas = typeof updateVentasView !== 'undefined' ? updateVentasView : null;
 
         function injectPeriodDatasets(chart, allVentas, periodoActual) {
-            if (!chart) return;
-            // Remover datasets de periodos si existen
-            chart.data.datasets = chart.data.datasets.filter(d => !d._isPeriodo);
-            if (dimState.periodos.anterior || dimState.periodos.anio) {
-                // calcular rangos según periodo seleccionado (simplificado: 30 días atrás y 365 días atrás)
-                const now = new Date();
-                const msDay = 86400000;
-                const range = 30 * msDay; // se puede ajustar según periodo config
-
-                const processVentas = (offsetMs) => {
-                    const start = new Date(now.getTime() - offsetMs - range);
-                    const end   = new Date(now.getTime() - offsetMs);
-                    const f = allVentas.filter(r => {
-                        const d = new Date(r['Fecha ef-Venta']||r['Fecha Venta']||'');
-                        return d >= start && d <= end;
-                    });
-                    const grouped = {};
-                    f.forEach(r => {
-                        const k = (r['Fecha ef-Venta']||r['Fecha Venta']||'').substring(0,10);
-                        grouped[k] = (grouped[k]||0) + (parseFloat((r['Total Venta']||'').replace(/[^0-9.-]/g,''))||0);
-                    });
-                    return chart.data.labels.map((lbl,i) => {
-                        // usar el mismo índice del label actual mapeado a la fecha desplazada
-                        const k = Object.keys(grouped).sort()[i];
-                        return k ? grouped[k] : null;
-                    });
-                };
-                if (dimState.periodos.anterior) {
-                    chart.data.datasets.push({ _isPeriodo: true, label: '● Periodo anterior', data: processVentas(range), borderColor: '#9C27B0', borderWidth: 1.5, borderDash: [5,4], pointRadius: 2, fill: false, tension: 0.3 });
-                }
-                if (dimState.periodos.anio) {
-                    chart.data.datasets.push({ _isPeriodo: true, label: '● Mismo mes año ant.', data: processVentas(365*msDay), borderColor: '#2196F3', borderWidth: 1.5, borderDash: [3,3], pointRadius: 2, fill: false, tension: 0.3 });
-                }
-                chart.update();
+            if (!chart || !chart.data) {
+                console.warn('⚠️ injectPeriodDatasets: chart no disponible');
+                return;
             }
+            
+            console.log('📊 injectPeriodDatasets ejecutando...', dimState.periodos);
+            
+            // Remover datasets de periodos anteriores
+            chart.data.datasets = chart.data.datasets.filter(d => !d._isPeriodo);
+            
+            // Si no hay ningún periodo activo, solo actualizar y salir
+            if (!dimState.periodos.anterior && !dimState.periodos.anio) {
+                chart.update();
+                console.log('✅ Periodos removidos');
+                return;
+            }
+            
+            // Calcular rangos según periodo actual
+            const labels = chart.data.labels || [];
+            const numDias = labels.length || 30;
+            const msDay = 86400000;
+            
+            const processVentas = (offsetDias) => {
+                const resultado = [];
+                console.log('🔄 Procesando periodo con offset:', offsetDias, 'días');
+                
+                labels.forEach((lbl, idx) => {
+                    // Obtener la fecha actual del label (en la gráfica)
+                    // Los labels del chart principal ya tienen formato "DD/MM" o fecha completa
+                    // Necesitamos obtener la fecha completa de los datos originales
+                    
+                    // Buscar en allVentas la venta que corresponde a este label
+                    const ventasDelLabel = allVentas.filter(r => {
+                        const f = r['Fecha Ef-Venta'] || r['Fecha Venta'];
+                        if (!f) return false;
+                        const fechaCorta = f.substring(5, 10).replace('-', '/'); // "MM-DD" -> "MM/DD"
+                        const fechaDia = f.substring(8, 10) + '/' + f.substring(5, 7); // "DD/MM"
+                        return lbl === fechaCorta || lbl === fechaDia || lbl === f;
+                    });
+                    
+                    if (ventasDelLabel.length === 0) {
+                        resultado.push(null);
+                        return;
+                    }
+                    
+                    // Tomar la primera venta para obtener la fecha
+                    const fechaRaw = ventasDelLabel[0]['Fecha Ef-Venta'] || ventasDelLabel[0]['Fecha Venta'];
+                    const fechaActual = parseFecha(fechaRaw);
+                    if (!fechaActual) {
+                        resultado.push(null);
+                        return;
+                    }
+                    
+                    // Calcular fecha del periodo anterior (restar offsetDias)
+                    const fechaAnterior = new Date(fechaActual);
+                    fechaAnterior.setDate(fechaAnterior.getDate() - offsetDias);
+                    
+                    // Buscar ventas en esa fecha anterior
+                    const fechaStr = formatFecha(fechaAnterior);
+                    const ventasEnFecha = allVentas.filter(r => {
+                        const f = r['Fecha Ef-Venta'] || r['Fecha Venta'];
+                        return f && f.substring(0, 10) === fechaStr;
+                    });
+                    
+                    const total = ventasEnFecha.reduce((s, r) => {
+                        return s + (parseFloat((r['Total Venta'] || '').replace(/[^0-9.-]/g, '')) || 0);
+                    }, 0);
+                    
+                    resultado.push(total > 0 ? total : null);
+                });
+                
+                const totalVentas = resultado.filter(v => v !== null).length;
+                console.log('✅ Periodo offset', offsetDias, ':', totalVentas, 'días con ventas');
+                return resultado;
+            };
+            
+            // Añadir datasets según toggles activos
+            if (dimState.periodos.anterior) {
+                const data = processVentas(30);
+                chart.data.datasets.push({
+                    _isPeriodo: true,
+                    label: '● Periodo anterior',
+                    data: data,
+                    type: 'line',
+                    borderColor: '#9C27B0',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [5, 4],
+                    pointRadius: 3,
+                    pointBackgroundColor: '#9C27B0',
+                    fill: false,
+                    tension: 0.3
+                });
+                console.log('✅ Añadido periodo anterior');
+            }
+            
+            if (dimState.periodos.anio) {
+                const data = processVentas(365);
+                chart.data.datasets.push({
+                    _isPeriodo: true,
+                    label: '● Mismo mes año ant.',
+                    data: data,
+                    type: 'line',
+                    borderColor: '#2196F3',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [3, 3],
+                    pointRadius: 3,
+                    pointBackgroundColor: '#2196F3',
+                    fill: false,
+                    tension: 0.3
+                });
+                console.log('✅ Añadido mismo mes año anterior');
+            }
+            
+            chart.update();
+        }
+
+        // Modal de configuración
+        function openConfigModal() {
+            document.getElementById('config-modal').classList.add('open');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.remove('open');
         }
 
         window.onload = () => {
