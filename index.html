@@ -600,6 +600,73 @@
         .config-modal-body {
             padding: 25px 30px;
         }
+
+        /* ═══════════════════════════════════════════════════════
+           MODAL DE DESGLOSE EXPANDIDO
+        ═══════════════════════════════════════════════════════ */
+        .detalle-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(6px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .detalle-modal-overlay.open { display: flex; }
+        .detalle-modal {
+            background: #f8f9fa;
+            border: 2px solid #4CAF50;
+            border-radius: 16px;
+            max-width: 95%;
+            width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            position: relative;
+        }
+        .detalle-modal-header {
+            padding: 20px 30px;
+            border-bottom: 2px solid rgba(76,175,80,0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(76,175,80,0.15), transparent);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .detalle-modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #2e7d32;
+        }
+        .detalle-modal-close {
+            background: none;
+            border: none;
+            color: #2e7d32;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .detalle-modal-close:hover {
+            background: rgba(76,175,80,0.2);
+            color: #1b5e20;
+        }
+        .detalle-modal-body {
+            padding: 25px 30px;
+            background: white;
+        }
     </style>
 </head>
 
@@ -670,6 +737,19 @@
                         <i class="fas fa-sync-alt"></i> Recargar Datos desde Google Sheets
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Desglose Expandido -->
+    <div id="detalle-modal" class="detalle-modal-overlay" onclick="if(event.target===this) closeDetalleModal()">
+        <div class="detalle-modal">
+            <div class="detalle-modal-header">
+                <h2 id="detalle-modal-title">📋 Detalle del Folio</h2>
+                <button class="detalle-modal-close" onclick="closeDetalleModal()">&times;</button>
+            </div>
+            <div class="detalle-modal-body" id="detalle-modal-content">
+                <!-- El contenido se inyecta dinámicamente -->
             </div>
         </div>
     </div>
@@ -1083,7 +1163,7 @@
                             </select>
                         </div>
                     </div>
-                    <div style="position:relative;height:220px;">
+                    <div style="position:relative;height:320px;padding:10px 0;">
                         <canvas id="chart-mixed-dim"></canvas>
                     </div>
                     <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
@@ -2747,12 +2827,47 @@
 
         // ── Toggle expandir fila ──────────────────────────────────────────
         function toggleExpandRow(folio, el) {
-            if (tblState.expanded.has(folio)) {
-                tblState.expanded.delete(folio);
-            } else {
-                tblState.expanded.add(folio);
+            console.log('📋 toggleExpandRow llamado para:', folio);
+            
+            // Buscar los datos de esta venta
+            const venta = tblState._lastData.find(v => v['Folio Venta'] === folio);
+            if (!venta) {
+                console.warn('⚠️ No se encontró venta con folio:', folio);
+                return;
             }
-            renderVentasTableRows(tblState._lastData);
+            
+            // Abrir modal con el desglose
+            openDetalleModal(venta);
+        }
+
+        function openDetalleModal(venta) {
+            const folio = venta['Folio Venta'] || 'N/A';
+            console.log('📂 Abriendo modal de desglose para:', folio);
+            
+            // Actualizar título
+            const titleEl = document.getElementById('detalle-modal-title');
+            if (titleEl) {
+                titleEl.textContent = `📋 Detalle del Folio ${folio}`;
+            }
+            
+            // Generar contenido
+            const contentEl = document.getElementById('detalle-modal-content');
+            if (contentEl) {
+                contentEl.innerHTML = buildSubtable(venta);
+            }
+            
+            // Abrir modal
+            const modal = document.getElementById('detalle-modal');
+            if (modal) {
+                modal.classList.add('open');
+            }
+        }
+
+        function closeDetalleModal() {
+            const modal = document.getElementById('detalle-modal');
+            if (modal) {
+                modal.classList.remove('open');
+            }
         }
 
         // ── Punto de entrada desde updateVentasView ───────────────────────
@@ -3554,37 +3669,66 @@
         });
 
         function toggleDimPanel(panelId, btn) {
+            console.log('🎛️ toggleDimPanel:', panelId);
             const panel = document.getElementById(panelId);
+            if (!panel) {
+                console.error('❌ Panel no encontrado:', panelId);
+                return;
+            }
             const isOpen = panel.classList.contains('open');
+            console.log('  Estado actual:', isOpen ? 'abierto' : 'cerrado');
+            
+            // Cerrar todos los otros paneles
             document.querySelectorAll('.dim-panel').forEach(p => p.classList.remove('open'));
-            if (!isOpen) panel.classList.add('open');
+            
+            // Alternar este panel
+            if (!isOpen) {
+                panel.classList.add('open');
+                console.log('✅ Panel abierto:', panelId);
+            } else {
+                console.log('✅ Panel cerrado');
+            }
         }
 
         function applyDimFilter(dim, input) {
+            console.log('🔍 applyDimFilter:', dim, 'value:', input.value, 'checked:', input.checked);
+            
             if (dim === 'recep' || dim === 'anticipo') {
                 dimState[dim] = input.value;
+                console.log('  Filtro radio actualizado:', dim, '=', input.value);
             } else {
                 // checkbox multiselección
-                const val = input.closest('.dim-option').querySelector('input').value;
+                const val = input.value;
                 if (input.checked) {
-                    if (!dimState[dim].includes(val)) dimState[dim].push(val);
+                    if (!dimState[dim].includes(val)) {
+                        dimState[dim].push(val);
+                        console.log('  ✅ Añadido:', val, '→', dimState[dim]);
+                    }
                 } else {
                     dimState[dim] = dimState[dim].filter(v => v !== val);
+                    console.log('  ❌ Removido:', val, '→', dimState[dim]);
                 }
                 // Marcar botón padre
                 const btn = document.getElementById('btn-dim-' + dim);
-                if (btn) btn.classList.toggle('has-selection', dimState[dim].length > 0);
+                if (btn) {
+                    btn.classList.toggle('has-selection', dimState[dim].length > 0);
+                    console.log('  Botón marcado:', dimState[dim].length > 0);
+                }
             }
+            
+            console.log('🔄 Actualizando vista...');
             updateVentasView();
         }
 
         function clearDimFilter(dim) {
+            console.log('🧹 clearDimFilter:', dim);
             dimState[dim] = Array.isArray(dimState[dim]) ? [] : '';
             // desmarcar checkboxes
             const container = document.getElementById('dim-opts-' + dim);
             if (container) container.querySelectorAll('input').forEach(i => i.checked = false);
             const btn = document.getElementById('btn-dim-' + dim);
             if (btn) btn.classList.remove('has-selection');
+            console.log('  Estado limpiado, actualizando vista...');
             updateVentasView();
         }
 
@@ -3656,14 +3800,22 @@
 
         // Función para rellenar opciones de dimensiones de forma dinámica
         function buildDimOptions(dim, values) {
+            console.log('🏗️ buildDimOptions:', dim, '| valores recibidos:', values.length);
             const container = document.getElementById('dim-opts-' + dim);
-            if (!container) return;
+            if (!container) {
+                console.error('❌ Container no encontrado:', 'dim-opts-' + dim);
+                return;
+            }
             const unique = [...new Set(values.filter(v => v && v.trim()))].sort();
+            console.log('  Valores únicos:', unique.length, '→', unique.slice(0, 5));
+            
             container.innerHTML = unique.map(v => `
                 <label class="dim-option">
                     <input type="checkbox" value="${v}" onchange="applyDimFilter('${dim}', this)">
                     ${v}
                 </label>`).join('');
+            
+            console.log('✅ Opciones generadas para', dim, ':', unique.length);
         }
 
         // Filtrar ventas con los filtros de dimensión activos
