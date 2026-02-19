@@ -1,0 +1,404 @@
+# CHANGELOG v6 — HDM Dashboard (CORRECCIONES CRÍTICAS + DIAGNÓSTICO)
+## Fecha: 2026-02-17
+
+---
+
+## 🎯 Problemas reportados y soluciones
+
+### 1. ✅ Gráfica "Análisis por Dimensión" encogida
+
+**Problema:** No se puede ver ni seleccionar opciones
+
+**Solución aplicada:**
+- Altura aumentada de 220px a **320px**
+- Padding añadido: `10px 0` para más espacio
+- Selector mantiene `onchange="updateMixedChart()"`
+
+**Cómo verificar:**
+```
+✓ Abrir consola (F12)
+✓ Buscar: "🔍 Verificación de elementos visuales:"
+✓ Verificar: "chart-mixed-dim: true visible: true"
+✓ Verificar: "dim-axis-selector: true visible: true"
+```
+
+**Si NO es visible:**
+```
+❌ chart-mixed-dim: true visible: false
+```
+→ La sección de Ventas no está activa
+→ Buscar en logs: "✅ Sección de Ventas activada"
+
+---
+
+### 2. ✅ Toggles de periodo anterior/año anterior
+
+**Problema:** No funcionan al hacer clic
+
+**Logs de diagnóstico añadidos:**
+```javascript
+🔘 Toggle periodo: anterior → true
+📊 window._ventasMainChart existe: true
+📊 appState.ventasData existe: true registros: 1738
+📊 Ventas válidas para periodos: 1738
+📊 Rango de fechas: {...}
+📊 injectPeriodDatasets ejecutando... {anterior: true, anio: false}
+🔄 Procesando periodo con offset: 30 días
+✅ Periodo offset 30: 15 días con ventas
+✅ Añadido periodo anterior
+```
+
+**Cómo verificar:**
+```
+✓ Click en "● Periodo anterior"
+✓ Buscar en consola: "✅ Añadido periodo anterior"
+✓ Debe aparecer línea MORADA punteada
+```
+
+**Si NO funciona:**
+```
+⚠️ No se puede inyectar periodos - chart o datos faltantes
+```
+→ La gráfica principal no existe
+→ Buscar: "✅ Gráfica principal de ventas creada"
+
+---
+
+### 3. ✅ Desglose de folios ahora es MODAL
+
+**Cambio:** Ya no expande inline, ahora abre **modal con fondo oscuro**
+
+**Características:**
+- Fondo oscuro: `rgba(0,0,0,0.85)` con blur
+- Modal con fondo claro: `#f8f9fa`
+- Borde verde: `#4CAF50`
+- Botón ✕ para cerrar
+- Click fuera del modal también cierra
+- Se puede abrir/cerrar sin recargar tabla
+
+**Cómo funciona:**
+1. Click en badge de folio (📗 V-2024-0123)
+2. Se abre modal centrado
+3. Resto de la página se oscurece
+4. Click en ✕ o fuera del modal para cerrar
+
+**Logs:**
+```javascript
+📋 toggleExpandRow llamado para: V-2024-0123
+📂 Abriendo modal de desglose para: V-2024-0123
+```
+
+---
+
+### 4. ✅ Filtros de dimensiones con logs extensivos
+
+**Problema reportado:** "al dar click, aparezcan las opciones disponibles"
+
+**Logs añadidos:**
+
+#### Al hacer clic en botón de filtro:
+```javascript
+🎛️ toggleDimPanel: dim-panel-dispositivo
+  Estado actual: cerrado
+✅ Panel abierto: dim-panel-dispositivo
+```
+
+#### Al poblar opciones:
+```javascript
+🏗️ buildDimOptions: dispositivo | valores recibidos: 22
+  Valores únicos: 8 → ["iPhone", "iPad", "Laptop", "PC", "Android"]
+✅ Opciones generadas para dispositivo: 8
+```
+
+#### Al seleccionar opción:
+```javascript
+🔍 applyDimFilter: dispositivo value: iPhone checked: true
+  ✅ Añadido: iPhone → ["iPhone"]
+  Botón marcado: true
+🔄 Actualizando vista...
+```
+
+#### Al limpiar filtro:
+```javascript
+🧹 clearDimFilter: dispositivo
+  Estado limpiado, actualizando vista...
+```
+
+**Cómo verificar que funciona:**
+```
+✓ Abrir consola (F12)
+✓ Click en "🖥️ Dispositivo"
+✓ Buscar: "✅ Panel abierto: dim-panel-dispositivo"
+✓ Debe aparecer panel con opciones
+✓ Seleccionar "iPhone"
+✓ Buscar: "✅ Añadido: iPhone"
+✓ La tabla y gráficas se filtran
+```
+
+---
+
+## 🔍 Diagnóstico paso a paso
+
+### **Test 1: Verificar sección de Ventas activa**
+
+```bash
+# En consola al cargar:
+✅ Activando sección de Ventas por defecto...
+✅ Sección de Ventas activada
+✅ Header de Ventas activado
+```
+
+**Si NO aparece:**
+- La sección no se activó
+- Hacer clic manual en "📗 Ventas" en el menú
+
+---
+
+### **Test 2: Verificar elementos visuales**
+
+```bash
+# Buscar en consola:
+🔍 Verificación de elementos visuales:
+  chart-mixed-dim: true visible: true
+  chart-ventas-main: true visible: true
+  dim-axis-selector: true visible: true
+  toggle-p-actual: true visible: true
+  toggle-p-anterior: true visible: true
+  toggle-p-anio: true visible: true
+```
+
+**Si alguno es `visible: false`:**
+- Hacer clic en "📗 Ventas" en el menú
+- Recargar página
+
+---
+
+### **Test 3: Verificar filtros de dimensiones poblados**
+
+```bash
+# Al cargar, buscar:
+🏗️ buildDimOptions: dispositivo | valores recibidos: 22
+✅ Opciones generadas para dispositivo: 8
+🏗️ buildDimOptions: marca | valores recibidos: 22
+✅ Opciones generadas para marca: 15
+```
+
+**Si NO aparece:**
+- Los datos no están cargando
+- Buscar: "✅ Ventas: N registros cargados"
+
+---
+
+### **Test 4: Verificar que panel se abre**
+
+```bash
+# Al hacer clic en botón de filtro:
+✓ Click en "🖥️ Dispositivo"
+✓ Buscar: "🎛️ toggleDimPanel: dim-panel-dispositivo"
+✓ Buscar: "✅ Panel abierto: dim-panel-dispositivo"
+```
+
+**Si aparece error:**
+```
+❌ Panel no encontrado: dim-panel-dispositivo
+```
+→ El HTML del panel no existe
+→ Problema de estructura
+
+---
+
+### **Test 5: Verificar que filtro se aplica**
+
+```bash
+# Al seleccionar checkbox:
+✓ Marcar "iPhone"
+✓ Buscar: "🔍 applyDimFilter: dispositivo value: iPhone checked: true"
+✓ Buscar: "✅ Añadido: iPhone → ['iPhone']"
+✓ Buscar: "🔄 Actualizando vista..."
+✓ Buscar: "✅ Después filtro dimensiones: N registros"
+```
+
+**Si N = 0:**
+- Ninguna venta tiene ese valor
+- Probar con otro filtro
+
+---
+
+## 🚨 Problemas comunes y soluciones
+
+### **Problema 1: Panel de filtros no se abre**
+
+**Síntomas:**
+```
+🎛️ toggleDimPanel: dim-panel-dispositivo
+❌ Panel no encontrado: dim-panel-dispositivo
+```
+
+**Solución:**
+- Verificar que estás en la sección de Ventas
+- El panel solo existe cuando Ventas está activa
+
+---
+
+### **Problema 2: Gráfica mixta no visible**
+
+**Síntomas:**
+```
+🔍 Verificación de elementos visuales:
+  chart-mixed-dim: true visible: false
+```
+
+**Solución:**
+```javascript
+// En consola ejecutar:
+document.getElementById('section-ventas').classList.add('active-section');
+```
+
+---
+
+### **Problema 3: Toggles de periodo no funcionan**
+
+**Síntomas:**
+```
+⚠️ No se puede inyectar periodos - chart o datos faltantes
+```
+
+**Causa:** La gráfica principal no se creó
+
+**Verificar:**
+```
+✅ Gráfica principal de ventas creada, window._ventasMainChart: true
+```
+
+**Si es `false`:**
+- La sección de Ventas no se actualizó completamente
+- Hacer clic en otra sección y volver a "📗 Ventas"
+
+---
+
+### **Problema 4: Filtros no actualizan gráficas**
+
+**Síntomas:**
+- Filtro se marca correctamente
+- Tabla se filtra
+- Pero gráficas no cambian
+
+**Verificar en logs:**
+```
+✅ Después filtro dimensiones: 5 registros
+🎨 Actualizando gráfica mixta...
+📊 updateMixedChart ejecutando...
+✅ Gráfica mixta actualizada
+```
+
+**Si NO aparece "Actualizando gráfica mixta":**
+- updateVentasView no está llamando a updateMixedChart
+- Bug crítico - reportar con logs
+
+---
+
+## 📝 Cambios técnicos
+
+### Archivos modificados:
+- **index.html** (4,183 líneas) - `+170 líneas`
+
+### Funciones modificadas:
+1. `toggleExpandRow()` - Ahora abre modal
+2. `openDetalleModal()` - Nueva función
+3. `closeDetalleModal()` - Nueva función
+4. `toggleDimPanel()` - Añadidos logs
+5. `applyDimFilter()` - Añadidos logs y fix
+6. `clearDimFilter()` - Añadidos logs
+7. `buildDimOptions()` - Añadidos logs
+
+### CSS añadido:
+```css
+.detalle-modal-overlay { ... }
+.detalle-modal { ... }
+.detalle-modal-header { ... }
+.detalle-modal-close { ... }
+.detalle-modal-body { ... }
+```
+
+### HTML añadido:
+```html
+<div id="detalle-modal" class="detalle-modal-overlay">
+  <div class="detalle-modal">
+    <div class="detalle-modal-header">...</div>
+    <div class="detalle-modal-body">...</div>
+  </div>
+</div>
+```
+
+---
+
+## 🧪 Tests completos
+
+### Test A: Gráfica mixta
+```
+1. Abrir consola (F12)
+2. Recargar página
+3. Buscar: "chart-mixed-dim: true visible: true"
+4. Si visible: false → Click en "📗 Ventas"
+5. Cambiar selector de "Fecha" a "Dispositivo"
+6. Buscar: "📊 Dimensión seleccionada: dispositivo"
+7. Buscar: "✅ Gráfica mixta actualizada"
+```
+
+### Test B: Toggles de periodo
+```
+1. Click en "● Periodo anterior"
+2. Buscar: "✅ Añadido periodo anterior"
+3. Verificar línea MORADA punteada
+4. Click en "● Mismo mes año ant."
+5. Buscar: "✅ Añadido mismo mes año anterior"
+6. Verificar línea AZUL punteada
+```
+
+### Test C: Modal de desglose
+```
+1. Click en cualquier folio verde (ej: V-2024-0123)
+2. Buscar: "📂 Abriendo modal de desglose"
+3. Verificar que aparece modal con fondo oscuro
+4. Verificar contenido del desglose visible
+5. Click en ✕ o fuera del modal
+6. Modal debe cerrar
+```
+
+### Test D: Filtros de dimensiones
+```
+1. Click en "🖥️ Dispositivo"
+2. Buscar: "✅ Panel abierto: dim-panel-dispositivo"
+3. Verificar que aparece lista de opciones
+4. Marcar "iPhone"
+5. Buscar: "✅ Añadido: iPhone"
+6. Verificar tabla filtra solo iPhones
+7. Click en "✕ Limpiar"
+8. Buscar: "🧹 clearDimFilter: dispositivo"
+9. Tabla vuelve a mostrar todos
+```
+
+---
+
+## 📸 Comparte los logs
+
+Si ALGUNO de estos tests falla, por favor comparte:
+
+1. **Captura de pantalla** de la consola COMPLETA
+2. **Todos los logs** de color (🔍, ✅, ❌, 📊, 🎛️, 🏗️)
+3. **Captura** de la sección de Ventas
+4. **Indica** qué test específico falló
+
+---
+
+## ✅ Estado actual
+
+- [x] Gráfica mixta: altura aumentada a 320px
+- [x] Toggles de periodo: logs de diagnóstico completos
+- [x] Desglose de folios: ahora es modal con fondo oscuro
+- [x] Filtros de dimensiones: logs extensivos en cada paso
+- [x] Modal cierra con ✕ o click fuera
+- [x] Filtros actualizan tabla Y gráficas
+- [ ] Esperando feedback con logs de consola
+
+**Próximo paso:** Recarga, abre consola (F12) y ejecuta los Tests A, B, C, D. Comparte los logs si algo falla.
