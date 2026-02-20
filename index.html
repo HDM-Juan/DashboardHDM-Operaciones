@@ -1072,21 +1072,39 @@
                                 style="padding:4px 8px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;width:110px;font-size:12px;"
                                 onchange="updateGastosFijos(this.value)">
                         </label>
-                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
-                            <input type="checkbox" id="check-gastos-fijos" checked onchange="toggleCostoLayer('gastosFijos',this.checked)">
-                            🏢 Gastos Fijos
+                        <span style="width:1px;height:24px;background:#d1d5db;margin:0 4px;"></span>
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
+                            📅 Periodo:
+                            <select id="bar-periodo" onchange="applyBarConfig()" style="padding:3px 6px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;font-size:12px;">
+                                <option value="este-dia">Este Día</option>
+                                <option value="esta-semana">Esta Semana</option>
+                                <option value="esta-quincena">Esta Quincena</option>
+                                <option value="este-mes" selected>Este Mes</option>
+                                <option value="este-bimestre">Este Bimestre</option>
+                                <option value="este-trimestre">Este Trimestre</option>
+                                <option value="este-semestre">Este Semestre</option>
+                                <option value="este-ano">Este Año</option>
+                                <option value="ultimos-7">Últimos 7 días</option>
+                                <option value="ultimos-30">Últimos 30 días</option>
+                                <option value="ultimos-90">Últimos 90 días</option>
+                            </select>
                         </label>
-                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
-                            <input type="checkbox" id="check-gastos-admin" checked onchange="toggleCostoLayer('gastosAdmin',this.checked)">
-                            📋 Gastos Admin
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
+                            📊 Agregación:
+                            <select id="bar-agregacion" onchange="applyBarConfig()" style="padding:3px 6px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;font-size:12px;">
+                                <option value="folio">Por Folio</option>
+                                <option value="dia" selected>Por Día</option>
+                                <option value="semana">Por Semana</option>
+                                <option value="mes">Por Mes</option>
+                                <option value="trimestre">Por Trimestre</option>
+                            </select>
                         </label>
-                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
-                            <input type="checkbox" id="check-costo-ventas" checked onchange="toggleCostoLayer('costoVentas',this.checked)">
-                            💸 Costo Ventas
-                        </label>
-                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
-                            <input type="checkbox" id="check-insumos" checked onchange="toggleCostoLayer('insumos',this.checked)">
-                            🔧 Insumos
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
+                            📈 Acumulación:
+                            <select id="bar-acumulacion" onchange="applyBarConfig()" style="padding:3px 6px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;font-size:12px;">
+                                <option value="acumulado" selected>Acumulado</option>
+                                <option value="no-acumulado">Sin Acumular</option>
+                            </select>
                         </label>
                     </div>
                 </div>
@@ -1095,7 +1113,7 @@
                 <div class="glass-card span-12">
                     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
                         <div class="collapsible-header" onclick="toggleCollapse('ventas-chart-body','arrow-ventas-chart')" style="flex:1;">
-                            <span style="font-size:15px;font-weight:700;color:#4a0000;">📊 Gráfica de Ventas &amp; Tendencia</span>
+                            <span style="font-size:15px;font-weight:700;color:#4a0000;">📊 Resultado del Periodo</span>
                             <span class="collapse-arrow" id="arrow-ventas-chart">▼</span>
                         </div>
                         <!-- Toggles de periodos -->
@@ -1123,7 +1141,7 @@
                 <!-- Anillo triple -->
                 <div class="glass-card span-4">
                     <div class="card-title">🔵 Distribución de Selección</div>
-                    <div style="position:relative;height:220px;">
+                    <div style="position:relative;height:300px;">
                         <canvas id="chart-donut-triple"></canvas>
                     </div>
                     <div class="donut-legend" id="donut-triple-legend">
@@ -1143,7 +1161,7 @@
                 </div>
 
                 <!-- Gráfica Mixta -->
-                <div class="glass-card span-8">
+                <div class="glass-card span-12">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
                         <div class="card-title" style="margin-bottom:0;">📈 Análisis por Dimensión</div>
                         <div style="display:flex;align-items:center;gap:6px;">
@@ -2240,7 +2258,10 @@
             const numFolios      = validVentas.length;
             const ticketPromedio = numFolios > 0 ? totalVentas / numFolios : 0;
             const costos         = appState.costoVentasData?.totales || {};
-            const costoTotal     = (costos.costoVentas||0) + (costos.insumosMes||0) + (costos.gastosAdmin||0) + appState.config.costos.gastosFijos;
+            // Calcular costo de ventas filtrado por los folios de validVentas
+            const filteredFolios = new Set(validVentas.map(v => v['Folio Venta']||v['Folio']||'').filter(Boolean));
+            const costoVentaFil  = (appState.costoVentasData?.costoVentas||[]).filter(c=>filteredFolios.has(c.folioRelacionado)).reduce((s,c)=>s+c.monto,0);
+            const costoTotal     = costoVentaFil + (costos.insumosMes||0) + (costos.gastosAdmin||0) + appState.config.costos.gastosFijos;
             const margen         = totalVentas - costoTotal;
             const margenPct      = totalVentas > 0 ? (margen / totalVentas) * 100 : 0;
 
@@ -2249,7 +2270,7 @@
             document.getElementById('stat-total-pagos').textContent     = formatCurrency(totalPagos);
             document.getElementById('stat-folios-ventas').textContent   = numFolios + ' folios';
             document.getElementById('stat-ticket-promedio').textContent = formatCurrency(ticketPromedio);
-            document.getElementById('stat-costo-ventas').textContent    = formatCurrency(costos.costoVentas||0);
+            document.getElementById('stat-costo-ventas').textContent    = formatCurrency(costoVentaFil);
             document.getElementById('stat-costo-total').textContent     = formatCurrency(costoTotal);
             document.getElementById('stat-margen').textContent          = formatCurrency(margen);
             document.getElementById('stat-margen-pct').textContent      = margenPct.toFixed(1) + '%';
@@ -2520,7 +2541,7 @@
             const srcRec = servicios.length ? servicios : [venta];
             const htmlRecepcion = `
                 <table style="width:100%;border-collapse:collapse;font-size:12px;">
-                    <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.25);">
+                    <thead><tr style="color:#374151;background:#e5e7eb;">
                         <th style="padding:5px 8px;text-align:left;">📘 Folio Recepción</th>
                         <th style="padding:5px 8px;text-align:left;">📅 Recepción</th>
                         <th style="padding:5px 8px;text-align:left;">⚙️ Tipo Servicio</th>
@@ -2532,9 +2553,9 @@
                         const kpi = s['Días Diagnóstico']||s['Días Diag']||s['Dias Diagnostico']||s['KPI Diagnóstico']||'—';
                         const kpiNum = parseFloat(kpi);
                         const kpiColor = isNaN(kpiNum)?'inherit': kpiNum<=1?'var(--neon-green)': kpiNum<=2?'var(--neon-orange)':'#ef4444';
-                        return `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                        return `<tr style="border-top:1px solid #e5e7eb;">
                             <td style="padding:4px 8px;"><span class="badge-folio badge-recep">📘${s['Folio Recepción']||s['Folio Recepcion']||folioRec||'—'}</span></td>
-                            <td style="padding:4px 8px;color:var(--text-mute);">${s['Fecha ef-Recepción']||s['Fecha Ef-Recepción']||s['Fecha Recepción']||s['Fecha']||'—'}</td>
+                            <td style="padding:4px 8px;color:#6b7280;">${s['Fecha ef-Recepción']||s['Fecha Ef-Recepción']||s['Fecha Recepción']||s['Fecha']||'—'}</td>
                             <td style="padding:4px 8px;">${s['Tipo Servicio']||s['Tipo de Servicio']||s['Tipo de Solicitud']||venta['Tipo de Solicitud']||'—'}</td>
                             <td style="padding:4px 8px;">${s['Resultado']||s['Resultado del Servicio']||venta['Resultado del Servicio']||'—'}</td>
                             <td style="padding:4px 8px;font-size:11px;">${s['Debido A']||s['Debido a']||venta['Debido a']||'—'}</td>
@@ -2546,7 +2567,7 @@
             // ── Anticipos: columnas clave según especificación ──────────────
             const htmlAnticipos = anticipos.length ? `
                 <table style="width:100%;border-collapse:collapse;font-size:12px;">
-                    <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.25);">
+                    <thead><tr style="color:#374151;background:#e5e7eb;">
                         <th style="padding:5px 8px;text-align:left;">📒 Folio Anticipo</th>
                         <th style="padding:5px 8px;text-align:left;">📅 Anticipo</th>
                         <th style="padding:5px 8px;text-align:left;">🧩 Pieza</th>
@@ -2558,9 +2579,9 @@
                         const kpi = a['ArriboR/Hoy a Meta']||a['Arribo a Meta']||a['KPI Entrega']||a['KPI']||'—';
                         const kpiNum = parseFloat(kpi);
                         const kpiColor = isNaN(kpiNum)?'inherit': kpiNum>=1?'var(--neon-green)': kpiNum>=0?'var(--neon-orange)':'#ef4444';
-                        return `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                        return `<tr style="border-top:1px solid #e5e7eb;">
                             <td style="padding:4px 8px;"><span class="badge-folio badge-anticipo">📒${a['Folio Anticipo']||a['Folio']||a['# Anticipo']||'—'}</span></td>
-                            <td style="padding:4px 8px;color:var(--text-mute);">${a['Fecha ef-Anticipo']||a['Fecha Ef-Anticipo']||a['Fecha Anticipo']||a['Fecha']||'—'}</td>
+                            <td style="padding:4px 8px;color:#6b7280;">${a['Fecha ef-Anticipo']||a['Fecha Ef-Anticipo']||a['Fecha Anticipo']||a['Fecha']||'—'}</td>
                             <td style="padding:4px 8px;">${a['Pieza']||'—'}</td>
                             <td style="padding:4px 8px;font-size:11px;">${a['Variante 1']||'—'}</td>
                             <td style="padding:4px 8px;font-size:11px;"><code style="color:var(--neon-lila);">${a['SKU_Refacción']||a['SKU Refacción']||a['SKU']||'—'}</code></td>
@@ -2577,7 +2598,7 @@
                 ${debugEgresos}
                 ${egresos.length ? `
                 <table style="width:100%;border-collapse:collapse;font-size:12px;">
-                    <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.25);">
+                    <thead><tr style="color:#374151;background:#e5e7eb;">
                         <th style="padding:5px 8px;text-align:left;">📕 Folio Egreso</th>
                         <th style="padding:5px 8px;text-align:left;">🛒 Orden</th>
                         <th style="padding:5px 8px;text-align:left;">📚 Folio Compra</th>
@@ -2600,7 +2621,7 @@
                         const docum   = e['¿Documentado?']||e['Documentado']||'—';
                         const cmpOk = ['si','sí','yes','✓','✅'].includes(String(comprado).toLowerCase().trim());
                         const docOk = ['si','sí','yes','✓','✅'].includes(String(docum).toLowerCase().trim());
-                        return `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                        return `<tr style="border-top:1px solid #e5e7eb;">
                             <td style="padding:4px 8px;"><span class="badge-folio" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">📕${e['Folio Egreso']||e['Folio']||'—'}</span></td>
                             <td style="padding:4px 8px;font-size:11px;">${e['Con Orden']||e['No. Orden']||e['Orden']||'—'}</td>
                             <td style="padding:4px 8px;font-size:11px;">${e['Folio para Compra']||e['Folio Compra']||e['Folio de Compra']||'—'}</td>
@@ -2623,12 +2644,12 @@
             // ── Detalle Venta ───────────────────────────────────────────────
             const htmlDetalle = detalles.length ? `
                 <table style="width:100%;border-collapse:collapse;font-size:12px;">
-                    <thead><tr style="color:var(--text-mute);background:rgba(0,0,0,0.25);">
+                    <thead><tr style="color:#374151;background:#e5e7eb;">
                         <th style="padding:5px 8px;text-align:left;">🔧 Servicio</th>
                         <th style="padding:5px 8px;text-align:right;">💲 Precio</th>
                     </tr></thead>
                     <tbody>${detalles.map(d=>`
-                    <tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                    <tr style="border-top:1px solid #e5e7eb;">
                         <td style="padding:4px 8px;">${d['Servicio']||d['Concepto']||'—'}</td>
                         <td style="padding:4px 8px;text-align:right;color:var(--neon-green);">${formatCurrency(parseMonto(d['Precio']||d['Monto']||0))}</td>
                     </tr>`).join('')}</tbody>
@@ -2651,8 +2672,8 @@
             });
 
             return `
-            <div style="padding:10px 14px 14px;background:rgba(0,0,0,0.4);border:2px solid rgba(0,210,255,0.35);border-radius:0 0 10px 10px;margin:0 4px 4px 4px;box-shadow:0 4px 14px rgba(0,210,255,0.10);">
-                <div style="font-size:11px;color:var(--text-mute);margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <div style="padding:10px 14px 14px;background:#f8f9fa;border:2px solid rgba(76,175,80,0.4);border-radius:0 0 10px 10px;margin:0 4px 4px 4px;box-shadow:0 4px 14px rgba(0,0,0,0.08);">
+                <div style="font-size:11px;color:#6b7280;margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                     🔗 <span class="badge-folio badge-venta">📗${folio}</span>
                     <span style="opacity:0.4;">→</span>
                     <span class="badge-folio badge-recep">📘${folioRec||'—'}</span>
@@ -2663,10 +2684,10 @@
                 <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
                     ${tabs.map((t,i)=>`
                     <button onclick="showSubTab('${tabId}','${t.id}')" id="${tabId}_btn_${t.id}"
-                        style="font-size:11px;padding:3px 10px;border-radius:10px;cursor:pointer;
-                               background:${i===0?'rgba(0,210,255,0.25)':'rgba(255,255,255,0.05)'};
-                               border:${i===0?'1px solid rgba(0,210,255,0.5)':'1px solid rgba(255,255,255,0.1)'};
-                               color:${i===0?'var(--neon-blue)':'var(--text-mute)'};">
+                        style="font-size:11px;padding:4px 12px;border-radius:8px;cursor:pointer;
+                               background:${i===0?'#e3f2fd':'#f5f5f5'};
+                               border:${i===0?'1px solid #2196F3':'1px solid #bdbdbd'};
+                               color:${i===0?'#1565c0':'#424242'};font-weight:${i===0?'600':'400'};">
                         ${t.icon} ${t.label}${t.count?` (${t.count})`:''}
                     </button>`).join('')}
                 </div>
@@ -2682,9 +2703,10 @@
                 if (!el || !btn) return;
                 const active = t === tab;
                 el.style.display     = active ? '' : 'none';
-                btn.style.background = active ? 'rgba(0,210,255,0.25)' : 'rgba(255,255,255,0.05)';
-                btn.style.border     = active ? '1px solid rgba(0,210,255,0.5)' : '1px solid rgba(255,255,255,0.1)';
-                btn.style.color      = active ? 'var(--neon-blue)' : 'var(--text-mute)';
+                btn.style.background = active ? '#e3f2fd' : '#f5f5f5';
+                btn.style.border     = active ? '1px solid #2196F3' : '1px solid #bdbdbd';
+                btn.style.color      = active ? '#1565c0' : '#424242';
+                btn.style.fontWeight = active ? '600' : '400';
             });
         }
 
@@ -2748,7 +2770,7 @@
                     modelo:     `<td>${row['Modelo_Ver'] || '—'}</td>`,
                     tipo:       `<td>${row['TipoServicio'] || '—'}</td>`,
                     recepcion:  (() => { const v = row['Folio Recepción Final']; return `<td>${v ? `<span class="badge-folio badge-recep">📘${v}</span>` : '—'}</td>`; })(),
-                    anticipo:   (() => { const v = row['Folio Anticipo']; return `<td>${v ? `<span class="badge-folio badge-anticipo">📒${v}</span>` : '—'}</td>`; })(),
+                    anticipo:   (() => { const v = row['Folio Anticipo'] || row['Anticipo en Recepción']; return `<td>${v ? `<span class="badge-folio badge-anticipo">📒${v}</span>` : '—'}</td>`; })(),
                     antMonto:   `<td style="text-align:right;color:var(--neon-orange);">${formatCurrency(parseMonto(row['Anticipo Recepción'] || row['Monto Ant Recep']))}</td>`,
                     totalVenta: `<td style="text-align:right;color:var(--neon-green);font-weight:600;">💲${formatCurrency(monto)}</td>`,
                     totalPagos: `<td style="text-align:right;color:var(--neon-lila);">💸${formatCurrency(pagos)}</td>`,
@@ -3617,22 +3639,28 @@
             loadData();
         }
 
+        // Función para aplicar configuración desde la barra de ventas
+        function applyBarConfig() {
+            const p = document.getElementById('bar-periodo')?.value;
+            const a = document.getElementById('bar-agregacion')?.value;
+            const c = document.getElementById('bar-acumulacion')?.value;
+            if (p) { appState.config.periodo    = p; const el = document.getElementById('periodo');    if (el) el.value = p; }
+            if (a) { appState.config.agregacion = a; const el = document.getElementById('agregacion'); if (el) el.value = a; }
+            if (c) { appState.config.acumulado  = c === 'acumulado'; const el = document.getElementById('acumulacion'); if (el) el.value = c; }
+            updateVentasView();
+        }
+
         // Función para aplicar configuración
         function applyConfig() {
             // Guardar configuración
             appState.config.periodo = document.getElementById('periodo').value;
             appState.config.agregacion = document.getElementById('agregacion').value;
             appState.config.acumulado = document.getElementById('acumulacion').value === 'acumulado';
-            
-            console.log('⚙️ APLICANDO CONFIGURACIÓN:');
-            console.log('  Periodo:', appState.config.periodo);
-            console.log('  Agregación:', appState.config.agregacion);
-            console.log('  Acumulado:', appState.config.acumulado);
-            
-            // updateVentasView llama a calcularCostoDeVentas internamente con el rango correcto
+            // Sincronizar con barra de ventas
+            const bp = document.getElementById('bar-periodo');    if (bp) bp.value = appState.config.periodo;
+            const ba = document.getElementById('bar-agregacion'); if (ba) ba.value = appState.config.agregacion;
+            const bc = document.getElementById('bar-acumulacion');if (bc) bc.value = appState.config.acumulado ? 'acumulado' : 'no-acumulado';
             updateVentasView();
-            
-            alert('✅ Configuración aplicada. El dashboard ahora muestra datos de: ' + appState.config.periodo.replace('-', ' ').toUpperCase());
         }
 
         // Función para resetear configuración
@@ -3640,6 +3668,9 @@
             document.getElementById('periodo').value = 'este-mes';
             document.getElementById('agregacion').value = 'dia';
             document.getElementById('acumulacion').value = 'acumulado';
+            const bp = document.getElementById('bar-periodo');    if (bp) bp.value = 'este-mes';
+            const ba = document.getElementById('bar-agregacion'); if (ba) ba.value = 'dia';
+            const bc = document.getElementById('bar-acumulacion');if (bc) bc.value = 'acumulado';
             document.getElementById('metric-total-venta').checked = true;
             document.getElementById('metric-total-pagos').checked = true;
             document.getElementById('metric-costo-venta').checked = false;
