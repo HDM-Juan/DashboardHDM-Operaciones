@@ -514,6 +514,14 @@
         .srv-folio-filter-btn.active, .srv-folio-filter-btn:hover {
             background: rgba(156,39,176,0.1); border-color: #9C27B0; color: #9C27B0;
         }
+        .srv-periodo-btn {
+            font-size: 12px; padding: 5px 14px; border-radius: 20px; cursor: pointer;
+            background: #f3f4f6; border: 1px solid #d1d5db;
+            color: #374151; transition: all 0.2s; font-weight: 500;
+        }
+        .srv-periodo-btn.active, .srv-periodo-btn:hover {
+            background: rgba(33,150,243,0.12); border-color: #2196F3; color: #1565c0; font-weight: 700;
+        }
         #srv-cards { display: contents; }
         .proy-value { font-size:1.4em; font-weight:700; letter-spacing:-0.5px; }
         .proy-label { font-size: 11px; color:#6b7280; margin-top:2px; }
@@ -916,6 +924,260 @@
             <!-- SECCIÓN: VENTAS -->
             <section id="section-ventas" class="dashboard-section active-section">
 
+                <!-- Configuración de Costos (compacta) -->
+                <div class="glass-card span-12" style="padding:12px 16px;">
+                    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                        <strong style="color:#b22222;font-size:13px;">⚙️ Costos:</strong>
+                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;">
+                            💵 Gastos Fijos:
+                            <input type="number" id="input-gastos-fijos" value="40000" min="0" step="1000"
+                                style="padding:4px 8px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;width:110px;font-size:12px;"
+                                onchange="updateGastosFijos(this.value)">
+                        </label>
+                        <span style="width:1px;height:24px;background:#d1d5db;margin:0 4px;"></span>
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
+                            📅 Periodo:
+                            <select id="bar-periodo" onchange="applyBarConfig()" style="padding:3px 6px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;font-size:12px;">
+                                <option value="este-dia">Este Día</option>
+                                <option value="esta-semana">Esta Semana</option>
+                                <option value="esta-quincena">Esta Quincena</option>
+                                <option value="este-mes" selected>Este Mes</option>
+                                <option value="este-bimestre">Este Bimestre</option>
+                                <option value="este-trimestre">Este Trimestre</option>
+                                <option value="este-semestre">Este Semestre</option>
+                                <option value="este-ano">Este Año</option>
+                                <option value="ultimos-7">Últimos 7 días</option>
+                                <option value="ultimos-30">Últimos 30 días</option>
+                                <option value="ultimos-90">Últimos 90 días</option>
+                            </select>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
+                            📊 Agregación:
+                            <select id="bar-agregacion" onchange="applyBarConfig()" style="padding:3px 6px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;font-size:12px;">
+                                <option value="folio">Por Folio</option>
+                                <option value="dia" selected>Por Día</option>
+                                <option value="semana">Por Semana</option>
+                                <option value="mes">Por Mes</option>
+                                <option value="trimestre">Por Trimestre</option>
+                            </select>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
+                            📈 Acumulación:
+                            <select id="bar-acumulacion" onchange="applyBarConfig()" style="padding:3px 6px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;font-size:12px;">
+                                <option value="acumulado" selected>Acumulado</option>
+                                <option value="no-acumulado">Sin Acumular</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- ╔══ GRÁFICA PRINCIPAL ══╗ -->
+                <div class="glass-card span-12">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
+                        <div class="collapsible-header" onclick="toggleCollapse('ventas-chart-body','arrow-ventas-chart')" style="flex:1;">
+                            <span style="font-size:15px;font-weight:700;color:#4a0000;">📊 Resultado y Tendencia</span>
+                            <span class="collapse-arrow" id="arrow-ventas-chart">▼</span>
+                        </div>
+                        <!-- Toggles de periodos -->
+                        <div class="periodo-toggles">
+                            <button class="periodo-toggle-btn p-actual on" id="toggle-p-actual" onclick="togglePeriodo('actual',this)">
+                                ● Este periodo
+                            </button>
+                            <button class="periodo-toggle-btn p-anterior" id="toggle-p-anterior" onclick="togglePeriodo('anterior',this)">
+                                ● Periodo anterior
+                            </button>
+                            <button class="periodo-toggle-btn p-anio" id="toggle-p-anio" onclick="togglePeriodo('anio',this)">
+                                ● Mismo mes año ant.
+                            </button>
+                        </div>
+                    </div>
+                    <div id="ventas-chart-body" class="collapsible-body" style="padding-top:4px;">
+                        <div class="chart-container" style="height:400px;">
+                            <canvas id="chart-ventas-main"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ▼ 🔵 Anillos y Dimensiones -->
+                <div class="span-12" style="grid-column:span 12;">
+                    <div class="collapsible-header" onclick="toggleCollapse('anillos-dim-body','arrow-anillos-dim')" style="background:#f9fafb;border-radius:8px;padding:10px 14px;border:1px solid #e5e7eb;">
+                        <span style="font-size:14px;font-weight:700;color:#4a0000;">🔵 Anillos y Dimensiones</span>
+                        <span class="collapse-arrow" id="arrow-anillos-dim">▼</span>
+                    </div>
+                    <div id="anillos-dim-body" class="collapsible-body" style="display:grid;grid-template-columns:repeat(12,1fr);gap:16px;padding-top:12px;">
+
+                        <!-- Anillo triple -->
+                        <div class="glass-card span-4">
+                            <div class="card-title">🔵 Distribución de Selección</div>
+                            <div style="position:relative;height:300px;">
+                                <canvas id="chart-donut-triple"></canvas>
+                            </div>
+                            <div class="donut-legend" id="donut-triple-legend">
+                                <div class="donut-legend-row">
+                                    <span class="donut-dot" style="background:#4CAF50;"></span>
+                                    <span id="donut-lbl-ventas" style="color:#374151;font-size:12px;">Total Ventas: —</span>
+                                </div>
+                                <div class="donut-legend-row">
+                                    <span class="donut-dot" style="background:#2196F3;"></span>
+                                    <span id="donut-lbl-margen" style="color:#374151;font-size:12px;">Margen Contrib.: —</span>
+                                </div>
+                                <div class="donut-legend-row">
+                                    <span class="donut-dot" style="background:#FFC107;"></span>
+                                    <span id="donut-lbl-folios" style="color:#374151;font-size:12px;">Folios: —</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gráfica Mixta -->
+                        <div class="glass-card span-8">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                                <div class="card-title" style="margin-bottom:0;">📈 Análisis por Dimensión</div>
+                                <div style="display:flex;align-items:center;gap:6px;">
+                                    <span style="font-size:11px;color:#6b7280;">Eje X:</span>
+                                    <select class="dim-axis-select" id="dim-axis-selector" onchange="updateMixedChart()">
+                                        <option value="fecha">📅 Fecha</option>
+                                        <option value="recep">📘 Recepción</option>
+                                        <option value="anticipo">📒 Anticipo</option>
+                                        <option value="dispositivo">🖥️ Dispositivo</option>
+                                        <option value="marca">®️ Marca</option>
+                                        <option value="modelo">📱 Modelo</option>
+                                        <option value="resultado">🏁 Resultado</option>
+                                        <option value="debidoa">👤 Debido a</option>
+                                        <option value="tiposol">1️⃣ Tipo Solicitud</option>
+                                        <option value="subtiposol">2️⃣ Subtipo Solicitud</option>
+                                        <option value="tiposrv">⚙️ Tipo Servicio</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style="position:relative;height:320px;padding:10px 0;">
+                                <canvas id="chart-mixed-dim"></canvas>
+                            </div>
+                            <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
+                                <span style="font-size:11px;display:flex;align-items:center;gap:5px;">
+                                    <span style="width:24px;height:8px;background:rgba(76,175,80,0.4);border-radius:3px;display:inline-block;"></span>
+                                    Área = Total Venta
+                                </span>
+                                <span style="font-size:11px;display:flex;align-items:center;gap:5px;">
+                                    <span style="width:12px;height:12px;background:#2196F3;border-radius:2px;display:inline-block;"></span>
+                                    Barras = Margen Contrib.
+                                </span>
+                                <span style="font-size:11px;display:flex;align-items:center;gap:5px;">
+                                    <span style="width:24px;height:3px;background:#FFC107;display:inline-block;"></span>
+                                    Línea = Nº Folios
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Leyenda nota (ancho completo dentro del sub-grid) -->
+                        <div class="span-12">
+                            <div class="leyenda-nota">
+                                📐 <strong>Proyección basada en tendencia lineal</strong> de ventas del periodo · Costos calculados como promedio del periodo + componente fijo mensual configurable · El punto de equilibrio indica el día estimado en que se cubren costos totales
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ▼ 📋 Indicadores -->
+                <div class="span-12" style="grid-column:span 12;">
+                    <div class="collapsible-header" onclick="toggleCollapse('indicadores-body','arrow-indicadores')" style="background:#f9fafb;border-radius:8px;padding:10px 14px;border:1px solid #e5e7eb;">
+                        <span style="font-size:14px;font-weight:700;color:#4a0000;">📋 Indicadores</span>
+                        <span class="collapse-arrow" id="arrow-indicadores">▼</span>
+                    </div>
+                    <div id="indicadores-body" class="collapsible-body" style="display:grid;grid-template-columns:repeat(12,1fr);gap:16px;padding-top:12px;">
+
+                <div class="glass-card span-3" style="border-top: 3px solid #4CAF50;">
+                    <div class="card-title">💲 Total Ventas</div>
+                    <div class="stat-value" style="color:#4CAF50;" id="stat-total-ventas">$0</div>
+                    <div class="stat-label">En el periodo seleccionado</div>
+                </div>
+
+                <div class="glass-card span-3" style="border-top: 3px solid #FF9800;">
+                    <div class="card-title">💰 Costo de Ventas</div>
+                    <div class="stat-value" style="color:#FF9800;" id="stat-costo-ventas">$0</div>
+                    <div class="stat-label">Egresos ligados a folios</div>
+                </div>
+
+                <div class="glass-card span-3" style="border-top: 3px solid #2196F3;">
+                    <div class="card-title">💹 Utilidad Bruta</div>
+                    <div class="stat-value" style="color:#2196F3;" id="stat-margen">$0</div>
+                    <div class="stat-label" id="stat-margen-pct">0%</div>
+                </div>
+
+                <div class="glass-card span-3" style="border-top: 3px solid #FF9800;">
+                    <div class="card-title">💰 Costo Total</div>
+                    <div class="stat-value" style="color:#FF9800;" id="stat-costo-total">$0</div>
+                    <div class="stat-label">Fijos + admin + ventas</div>
+                </div>
+
+                <div class="glass-card span-3" style="border-top: 3px solid #9C27B0;">
+                    <div class="card-title">💸 Total Pagos</div>
+                    <div class="stat-value" style="color:#9C27B0;" id="stat-total-pagos">$0</div>
+                    <div class="stat-label">Flujo de efectivo recibido</div>
+                </div>
+
+                <div class="glass-card span-3" style="border-top: 3px solid #9C27B0;">
+                    <div class="card-title">💸 Extracciones</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div style="font-size:1.1em;color:#9C27B0;font-weight:bold;" id="stat-extracciones">0 reg.</div>
+                        <div style="font-size:1.3em;color:#9C27B0;" id="stat-extracciones-monto">$0</div>
+                    </div>
+                    <div class="stat-label">Flujo · No incluidas en costos</div>
+                </div>
+
+                <div class="glass-card span-3" style="border-top: 3px solid #9C27B0;">
+                    <div class="card-title">💸 Otros Ingresos</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div style="font-size:1.1em;color:#9C27B0;font-weight:bold;" id="stat-ingresos">0 reg.</div>
+                        <div style="font-size:1.3em;color:#9C27B0;" id="stat-ingresos-monto">$0</div>
+                    </div>
+                    <div class="stat-label">Flujo · No incluidos en costos</div>
+                </div>
+
+                <div class="glass-card span-3" style="border-top: 3px solid #4CAF50;">
+                    <div class="card-title">💲 Ticket Promedio</div>
+                    <div class="stat-value" style="color:#4CAF50;" id="stat-ticket-promedio">$0</div>
+                    <div class="stat-label" id="stat-folios-ventas">0 folios</div>
+                </div>
+
+                    </div><!-- /indicadores-body -->
+                </div><!-- /indicadores subsection -->
+
+                <!-- ▼ 🔮 Proyección al cierre -->
+                <div class="span-12" style="grid-column:span 12;">
+                    <div class="collapsible-header" onclick="toggleCollapse('proyeccion-body','arrow-proyeccion')" style="background:#f9fafb;border-radius:8px;padding:10px 14px;border:1px solid #e5e7eb;">
+                        <span style="font-size:14px;font-weight:700;color:#4a0000;">🔮 Proyección al cierre</span>
+                        <span class="collapse-arrow" id="arrow-proyeccion">▼</span>
+                    </div>
+                    <div id="proyeccion-body" class="collapsible-body" style="padding-top:12px;">
+                <div class="glass-card span-12" style="border:1px solid rgba(156,39,176,0.3);">
+                    <div class="card-title" style="color:#9C27B0;">🔮 Proyección al cierre</div>
+                    <div style="display:flex;gap:20px;justify-content:space-around;flex-wrap:wrap;">
+                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
+                            <div class="proy-label">💲 Ventas al cierre</div>
+                            <div class="proy-value" style="color:#4CAF50;" id="proy-ventas">—</div>
+                        </div>
+                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
+                            <div class="proy-label">💰 Costos proyectados</div>
+                            <div class="proy-value" style="color:#FF9800;" id="proy-costos">—</div>
+                        </div>
+                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
+                            <div class="proy-label">💸 Gastos fijos</div>
+                            <div class="proy-value" style="color:#ef4444;" id="proy-fijos">—</div>
+                        </div>
+                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
+                            <div class="proy-label">💹 Resultado proyectado</div>
+                            <div class="proy-value" style="font-size:1.7em;" id="proy-resultado">—</div>
+                        </div>
+                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
+                            <div class="proy-label">⚖️ Punto de equilibrio</div>
+                            <div style="font-size:1.1em;font-weight:600;margin-top:2px;" id="proy-equilibrio">—</div>
+                        </div>
+                    </div>
+                </div>
+                    </div><!-- /proyeccion-body -->
+                </div><!-- /proyeccion subsection -->
+
                 <!-- ╔══ BARRA DE DIMENSIONES / FILTROS ══╗ -->
                 <div class="span-12">
                     <div class="dim-filter-bar">
@@ -1062,233 +1324,6 @@
                     </div>
                 </div>
 
-                <!-- Configuración de Costos (compacta) -->
-                <div class="glass-card span-12" style="padding:12px 16px;">
-                    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
-                        <strong style="color:#b22222;font-size:13px;">⚙️ Costos:</strong>
-                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;">
-                            💵 Gastos Fijos:
-                            <input type="number" id="input-gastos-fijos" value="40000" min="0" step="1000"
-                                style="padding:4px 8px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;width:110px;font-size:12px;"
-                                onchange="updateGastosFijos(this.value)">
-                        </label>
-                        <span style="width:1px;height:24px;background:#d1d5db;margin:0 4px;"></span>
-                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
-                            📅 Periodo:
-                            <select id="bar-periodo" onchange="applyBarConfig()" style="padding:3px 6px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;font-size:12px;">
-                                <option value="este-dia">Este Día</option>
-                                <option value="esta-semana">Esta Semana</option>
-                                <option value="esta-quincena">Esta Quincena</option>
-                                <option value="este-mes" selected>Este Mes</option>
-                                <option value="este-bimestre">Este Bimestre</option>
-                                <option value="este-trimestre">Este Trimestre</option>
-                                <option value="este-semestre">Este Semestre</option>
-                                <option value="este-ano">Este Año</option>
-                                <option value="ultimos-7">Últimos 7 días</option>
-                                <option value="ultimos-30">Últimos 30 días</option>
-                                <option value="ultimos-90">Últimos 90 días</option>
-                            </select>
-                        </label>
-                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
-                            📊 Agregación:
-                            <select id="bar-agregacion" onchange="applyBarConfig()" style="padding:3px 6px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;font-size:12px;">
-                                <option value="folio">Por Folio</option>
-                                <option value="dia" selected>Por Día</option>
-                                <option value="semana">Por Semana</option>
-                                <option value="mes">Por Mes</option>
-                                <option value="trimestre">Por Trimestre</option>
-                            </select>
-                        </label>
-                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
-                            📈 Acumulación:
-                            <select id="bar-acumulacion" onchange="applyBarConfig()" style="padding:3px 6px;background:#f9fafb;border:1px solid #d1d5db;color:#374151;border-radius:6px;font-size:12px;">
-                                <option value="acumulado" selected>Acumulado</option>
-                                <option value="no-acumulado">Sin Acumular</option>
-                            </select>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- ╔══ GRÁFICA PRINCIPAL ══╗ -->
-                <div class="glass-card span-12">
-                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
-                        <div class="collapsible-header" onclick="toggleCollapse('ventas-chart-body','arrow-ventas-chart')" style="flex:1;">
-                            <span style="font-size:15px;font-weight:700;color:#4a0000;">📊 Resultado del Periodo</span>
-                            <span class="collapse-arrow" id="arrow-ventas-chart">▼</span>
-                        </div>
-                        <!-- Toggles de periodos -->
-                        <div class="periodo-toggles">
-                            <button class="periodo-toggle-btn p-actual on" id="toggle-p-actual" onclick="togglePeriodo('actual',this)">
-                                ● Este periodo
-                            </button>
-                            <button class="periodo-toggle-btn p-anterior" id="toggle-p-anterior" onclick="togglePeriodo('anterior',this)">
-                                ● Periodo anterior
-                            </button>
-                            <button class="periodo-toggle-btn p-anio" id="toggle-p-anio" onclick="togglePeriodo('anio',this)">
-                                ● Mismo mes año ant.
-                            </button>
-                        </div>
-                    </div>
-                    <div id="ventas-chart-body" class="collapsible-body" style="padding-top:4px;">
-                        <div class="chart-container" style="height:400px;">
-                            <canvas id="chart-ventas-main"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ╔══ TARJETAS: ANILLO TRIPLE + GRÁFICA MIXTA ══╗ -->
-
-                <!-- Anillo triple -->
-                <div class="glass-card span-4">
-                    <div class="card-title">🔵 Distribución de Selección</div>
-                    <div style="position:relative;height:300px;">
-                        <canvas id="chart-donut-triple"></canvas>
-                    </div>
-                    <div class="donut-legend" id="donut-triple-legend">
-                        <div class="donut-legend-row">
-                            <span class="donut-dot" style="background:#4CAF50;"></span>
-                            <span id="donut-lbl-ventas" style="color:#374151;font-size:12px;">Total Ventas: —</span>
-                        </div>
-                        <div class="donut-legend-row">
-                            <span class="donut-dot" style="background:#2196F3;"></span>
-                            <span id="donut-lbl-margen" style="color:#374151;font-size:12px;">Margen Contrib.: —</span>
-                        </div>
-                        <div class="donut-legend-row">
-                            <span class="donut-dot" style="background:#FFC107;"></span>
-                            <span id="donut-lbl-folios" style="color:#374151;font-size:12px;">Folios: —</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Gráfica Mixta -->
-                <div class="glass-card span-12">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-                        <div class="card-title" style="margin-bottom:0;">📈 Análisis por Dimensión</div>
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="font-size:11px;color:#6b7280;">Eje X:</span>
-                            <select class="dim-axis-select" id="dim-axis-selector" onchange="updateMixedChart()">
-                                <option value="fecha">📅 Fecha</option>
-                                <option value="recep">📘 Recepción</option>
-                                <option value="anticipo">📒 Anticipo</option>
-                                <option value="dispositivo">🖥️ Dispositivo</option>
-                                <option value="marca">®️ Marca</option>
-                                <option value="modelo">📱 Modelo</option>
-                                <option value="resultado">🏁 Resultado</option>
-                                <option value="debidoa">👤 Debido a</option>
-                                <option value="tiposol">1️⃣ Tipo Solicitud</option>
-                                <option value="subtiposol">2️⃣ Subtipo Solicitud</option>
-                                <option value="tiposrv">⚙️ Tipo Servicio</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div style="position:relative;height:320px;padding:10px 0;">
-                        <canvas id="chart-mixed-dim"></canvas>
-                    </div>
-                    <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
-                        <span style="font-size:11px;display:flex;align-items:center;gap:5px;">
-                            <span style="width:24px;height:8px;background:rgba(76,175,80,0.4);border-radius:3px;display:inline-block;"></span>
-                            Área = Total Venta
-                        </span>
-                        <span style="font-size:11px;display:flex;align-items:center;gap:5px;">
-                            <span style="width:12px;height:12px;background:#2196F3;border-radius:2px;display:inline-block;"></span>
-                            Barras = Margen Contrib.
-                        </span>
-                        <span style="font-size:11px;display:flex;align-items:center;gap:5px;">
-                            <span style="width:24px;height:3px;background:#FFC107;display:inline-block;"></span>
-                            Línea = Nº Folios
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Leyenda nota (fuera de tarjetas, ancho completo) -->
-                <div class="span-12">
-                    <div class="leyenda-nota">
-                        📐 <strong>Proyección basada en tendencia lineal</strong> de ventas del periodo · Costos calculados como promedio del periodo + componente fijo mensual configurable · El punto de equilibrio indica el día estimado en que se cubren costos totales
-                    </div>
-                </div>
-
-                <!-- ╔══ TARJETAS INDICADORES ══╗ -->
-                <div class="glass-card span-3" style="border-top: 3px solid #4CAF50;">
-                    <div class="card-title">💲 Total Ventas</div>
-                    <div class="stat-value" style="color:#4CAF50;" id="stat-total-ventas">$0</div>
-                    <div class="stat-label">En el periodo seleccionado</div>
-                </div>
-
-                <div class="glass-card span-3" style="border-top: 3px solid #FF9800;">
-                    <div class="card-title">💰 Costo de Ventas</div>
-                    <div class="stat-value" style="color:#FF9800;" id="stat-costo-ventas">$0</div>
-                    <div class="stat-label">Egresos ligados a folios</div>
-                </div>
-
-                <div class="glass-card span-3" style="border-top: 3px solid #2196F3;">
-                    <div class="card-title">💹 Utilidad Bruta</div>
-                    <div class="stat-value" style="color:#2196F3;" id="stat-margen">$0</div>
-                    <div class="stat-label" id="stat-margen-pct">0%</div>
-                </div>
-
-                <div class="glass-card span-3" style="border-top: 3px solid #FF9800;">
-                    <div class="card-title">💰 Costo Total</div>
-                    <div class="stat-value" style="color:#FF9800;" id="stat-costo-total">$0</div>
-                    <div class="stat-label">Fijos + admin + ventas</div>
-                </div>
-
-                <div class="glass-card span-3" style="border-top: 3px solid #9C27B0;">
-                    <div class="card-title">💸 Total Pagos</div>
-                    <div class="stat-value" style="color:#9C27B0;" id="stat-total-pagos">$0</div>
-                    <div class="stat-label">Flujo de efectivo recibido</div>
-                </div>
-
-                <div class="glass-card span-3" style="border-top: 3px solid #9C27B0;">
-                    <div class="card-title">💸 Extracciones</div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div style="font-size:1.1em;color:#9C27B0;font-weight:bold;" id="stat-extracciones">0 reg.</div>
-                        <div style="font-size:1.3em;color:#9C27B0;" id="stat-extracciones-monto">$0</div>
-                    </div>
-                    <div class="stat-label">Flujo · No incluidas en costos</div>
-                </div>
-
-                <div class="glass-card span-3" style="border-top: 3px solid #9C27B0;">
-                    <div class="card-title">💸 Otros Ingresos</div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div style="font-size:1.1em;color:#9C27B0;font-weight:bold;" id="stat-ingresos">0 reg.</div>
-                        <div style="font-size:1.3em;color:#9C27B0;" id="stat-ingresos-monto">$0</div>
-                    </div>
-                    <div class="stat-label">Flujo · No incluidos en costos</div>
-                </div>
-
-                <div class="glass-card span-3" style="border-top: 3px solid #4CAF50;">
-                    <div class="card-title">💲 Ticket Promedio</div>
-                    <div class="stat-value" style="color:#4CAF50;" id="stat-ticket-promedio">$0</div>
-                    <div class="stat-label" id="stat-folios-ventas">0 folios</div>
-                </div>
-
-                <!-- Proyección -->
-                <div class="glass-card span-12" style="border:1px solid rgba(156,39,176,0.3);">
-                    <div class="card-title" style="color:#9C27B0;">🔮 Proyección al cierre</div>
-                    <div style="display:flex;gap:20px;justify-content:space-around;flex-wrap:wrap;">
-                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
-                            <div class="proy-label">💲 Ventas al cierre</div>
-                            <div class="proy-value" style="color:#4CAF50;" id="proy-ventas">—</div>
-                        </div>
-                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
-                            <div class="proy-label">💰 Costos proyectados</div>
-                            <div class="proy-value" style="color:#FF9800;" id="proy-costos">—</div>
-                        </div>
-                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
-                            <div class="proy-label">💸 Gastos fijos</div>
-                            <div class="proy-value" style="color:#ef4444;" id="proy-fijos">—</div>
-                        </div>
-                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
-                            <div class="proy-label">💹 Resultado proyectado</div>
-                            <div class="proy-value" style="font-size:1.7em;" id="proy-resultado">—</div>
-                        </div>
-                        <div class="proy-row" style="flex-direction:column;border:none;gap:2px;">
-                            <div class="proy-label">⚖️ Punto de equilibrio</div>
-                            <div style="font-size:1.1em;font-weight:600;margin-top:2px;" id="proy-equilibrio">—</div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Tabla de ventas -->
                 <div class="glass-card span-12">
                     <div class="collapsible-header" id="ventas-table-title"
@@ -1347,6 +1382,17 @@
 
                 <!-- ── Tarjetas resumen ───────────────────────────────────── -->
                 <div id="srv-cards" class="stat-grid"></div>
+
+                <!-- ── Selector de Periodo ──────────────────────────────── -->
+                <div class="glass-card span-12" style="padding:10px 14px;">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <span style="font-size:12px;color:#374151;font-weight:600;">📅 Periodo:</span>
+                        <button class="srv-periodo-btn active" id="srv-per-30" onclick="setSrvPeriodo('ultimos-30',this)">Últimos 30 días</button>
+                        <button class="srv-periodo-btn" id="srv-per-60" onclick="setSrvPeriodo('ultimos-60',this)">Últimos 60 días</button>
+                        <button class="srv-periodo-btn" id="srv-per-90" onclick="setSrvPeriodo('ultimos-90',this)">Últimos 90 días</button>
+                        <button class="srv-periodo-btn" id="srv-per-180" onclick="setSrvPeriodo('ultimos-180',this)">Últimos 180 días</button>
+                    </div>
+                </div>
 
                 <!-- ── Fila 1 de gráficas: Top Dispositivos + Resultados ── -->
                 <div class="glass-card span-8" style="min-height:280px;">
@@ -1522,8 +1568,14 @@
                 case 'ultimos-30':
                     startStr = diasAtras(29);
                     break;
+                case 'ultimos-60':
+                    startStr = diasAtras(59);
+                    break;
                 case 'ultimos-90':
                     startStr = diasAtras(89);
+                    break;
+                case 'ultimos-180':
+                    startStr = diasAtras(179);
                     break;
                 default:
                     startStr = str(anio, mes, 1); // este-mes
@@ -3152,6 +3204,7 @@
         const srvState = {
             dim: 'dispositivo',
             folioFilter: 'todos',
+            periodo: 'ultimos-30',
             charts: {}
         };
 
@@ -3182,13 +3235,17 @@
 
         // ── Filtrado global de servicios ─────────────────────────────────
         function getServiciosFiltered() {
-            const rango = calcularRangoFechas(appState.config.periodo||'este-mes');
+            const rango = calcularRangoFechas(srvState.periodo || 'ultimos-30');
             const filDisp = document.getElementById('srv-fil-dispositivo')?.value || '';
             const filMarca= document.getElementById('srv-fil-marca')?.value || '';
             const filTipo = document.getElementById('srv-fil-tipo-sol')?.value || '';
             const filRes  = document.getElementById('srv-fil-resultado')?.value || '';
 
             return (appState.serviciosData||[]).filter(s => {
+                // Filtro de validez: solo registros con validez = 'válido'
+                const val = (s['Validez'] || '').toString().trim().toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (val !== 'valido') return false;
                 const f = srvFecha(s);
                 if (f) {
                     const k = formatFecha(f);
@@ -3221,6 +3278,13 @@
         function resetServiciosFiltros() {
             ['srv-fil-dispositivo','srv-fil-marca','srv-fil-tipo-sol','srv-fil-resultado']
                 .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            updateServiciosView();
+        }
+
+        function setSrvPeriodo(periodo, btn) {
+            srvState.periodo = periodo;
+            document.querySelectorAll('.srv-periodo-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
             updateServiciosView();
         }
 
@@ -3323,12 +3387,12 @@
                 options: {
                     responsive:true, maintainAspectRatio:false,
                     interaction:{ mode:'index', intersect:false },
-                    plugins:{ legend:{ labels:{color:'#fff',font:{size:11}} },
+                    plugins:{ legend:{ labels:{color:'#374151',font:{size:11}} },
                               tooltip:{ callbacks:{ label:c=>c.datasetIndex===0 ? `${c.dataset.label}: ${c.parsed.y}` : `${c.dataset.label}: ${formatCurrency(c.parsed.y)}` } } },
                     scales:{
-                        yC:{ type:'linear', position:'left', beginAtZero:true, ticks:{color:'var(--neon-blue)',font:{size:10}}, grid:{color:'rgba(255,255,255,0.04)'} },
+                        yC:{ type:'linear', position:'left', beginAtZero:true, ticks:{color:'var(--neon-blue)',font:{size:10}}, grid:{color:'rgba(0,0,0,0.06)'} },
                         yP:{ type:'linear', position:'right', beginAtZero:true, ticks:{color:'var(--neon-green)',font:{size:10},callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'k':v)}, grid:{display:false} },
-                        x: { ticks:{color:'#fff',font:{size:10},maxRotation:35}, grid:{color:'rgba(255,255,255,0.04)'} }
+                        x: { ticks:{color:'#374151',font:{size:10},maxRotation:35}, grid:{color:'rgba(0,0,0,0.06)'} }
                     }
                 }
             });
@@ -3352,7 +3416,7 @@
                 }]},
                 options:{
                     responsive:true, maintainAspectRatio:false,
-                    plugins:{ legend:{position:'right',labels:{color:'#fff',font:{size:10},padding:8}},
+                    plugins:{ legend:{position:'right',labels:{color:'#374151',font:{size:10},padding:8}},
                               tooltip:{callbacks:{ label:c=>`${c.label}: ${c.parsed} (${Math.round(c.parsed/data.length*100)}%)` }} }
                 }
             });
@@ -3388,8 +3452,8 @@
                     plugins:{ legend:{display:false},
                               tooltip:{callbacks:{ label:c=>`${c.parsed.x.toFixed(1)} días (n=${sorted[c.dataIndex].n})` }} },
                     scales:{
-                        x:{ beginAtZero:true, ticks:{color:'#fff',font:{size:10}}, grid:{color:'rgba(255,255,255,0.04)'} },
-                        y:{ ticks:{color:'#fff',font:{size:10}}, grid:{display:false} }
+                        x:{ beginAtZero:true, ticks:{color:'#374151',font:{size:10}}, grid:{color:'rgba(0,0,0,0.06)'} },
+                        y:{ ticks:{color:'#374151',font:{size:10}}, grid:{display:false} }
                     }
                 }
             });
@@ -3413,8 +3477,8 @@
                     indexAxis:'y', responsive:true, maintainAspectRatio:false,
                     plugins:{ legend:{display:false} },
                     scales:{
-                        x:{ beginAtZero:true, ticks:{color:'#fff',font:{size:10}}, grid:{color:'rgba(255,255,255,0.04)'} },
-                        y:{ ticks:{color:'#fff',font:{size:10},maxRotation:0}, grid:{display:false} }
+                        x:{ beginAtZero:true, ticks:{color:'#374151',font:{size:10}}, grid:{color:'rgba(0,0,0,0.06)'} },
+                        y:{ ticks:{color:'#374151',font:{size:10},maxRotation:0}, grid:{display:false} }
                     }
                 }
             });
@@ -4066,52 +4130,38 @@
             const processVentas = (offsetDias) => {
                 const resultado = [];
                 console.log('🔄 Procesando periodo con offset:', offsetDias, 'días');
-                
+                const startDate = periodoActual.start;
+                const todasLasVentas = appState.ventasData || [];
+
                 labels.forEach((lbl, idx) => {
-                    // Obtener la fecha actual del label (en la gráfica)
-                    // Los labels del chart principal ya tienen formato "DD/MM" o fecha completa
-                    // Necesitamos obtener la fecha completa de los datos originales
-                    
-                    // Buscar en allVentas la venta que corresponde a este label
-                    const ventasDelLabel = allVentas.filter(r => {
-                        const f = r['Fecha Ef-Venta'] || r['Fecha Venta'];
-                        if (!f) return false;
-                        const fechaCorta = f.substring(5, 10).replace('-', '/'); // "MM-DD" -> "MM/DD"
-                        const fechaDia = f.substring(8, 10) + '/' + f.substring(5, 7); // "DD/MM"
-                        return lbl === fechaCorta || lbl === fechaDia || lbl === f;
-                    });
-                    
-                    if (ventasDelLabel.length === 0) {
-                        resultado.push(null);
-                        return;
-                    }
-                    
-                    // Tomar la primera venta para obtener la fecha
-                    const fechaRaw = ventasDelLabel[0]['Fecha Ef-Venta'] || ventasDelLabel[0]['Fecha Venta'];
-                    const fechaActual = parseFecha(fechaRaw);
-                    if (!fechaActual) {
-                        resultado.push(null);
-                        return;
-                    }
-                    
+                    // Reconstruir la fecha actual a partir del inicio del periodo + índice
+                    const fechaActual = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                    fechaActual.setDate(fechaActual.getDate() + idx);
+
                     // Calcular fecha del periodo anterior (restar offsetDias)
                     const fechaAnterior = new Date(fechaActual);
                     fechaAnterior.setDate(fechaAnterior.getDate() - offsetDias);
-                    
-                    // Buscar ventas en esa fecha anterior
+
+                    // Buscar en TODOS los datos (no solo los filtrados) con filtro de validez
                     const fechaStr = formatFecha(fechaAnterior);
-                    const ventasEnFecha = allVentas.filter(r => {
+                    const ventasEnFecha = todasLasVentas.filter(r => {
+                        const val = (r['Validez'] || '').toString().trim().toLowerCase();
+                        if (val.includes('invalid') || val.includes('invalido') ||
+                            val.includes('inválido') || val.includes('cancelado') ||
+                            val.includes('eliminado') || val.includes('cancel')) {
+                            return false;
+                        }
                         const f = r['Fecha Ef-Venta'] || r['Fecha Venta'];
                         return f && f.substring(0, 10) === fechaStr;
                     });
-                    
+
                     const total = ventasEnFecha.reduce((s, r) => {
-                        return s + (parseFloat((r['Total Venta'] || '').replace(/[^0-9.-]/g, '')) || 0);
+                        return s + (parseFloat((r['Total Venta'] || '').toString().replace(/[^0-9.-]/g, '')) || 0);
                     }, 0);
-                    
+
                     resultado.push(total > 0 ? total : null);
                 });
-                
+
                 const totalVentas = resultado.filter(v => v !== null).length;
                 console.log('✅ Periodo offset', offsetDias, ':', totalVentas, 'días con ventas');
                 return resultado;
