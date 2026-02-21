@@ -3242,10 +3242,10 @@
             const filRes  = document.getElementById('srv-fil-resultado')?.value || '';
 
             return (appState.serviciosData||[]).filter(s => {
-                // Filtro de validez: solo registros válidos
+                // Filtro de validez: solo registros con validez = 'válido'
                 const val = (s['Validez'] || '').toString().trim().toLowerCase()
                     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                if (val && val !== 'valido') return false;
+                if (val !== 'valido') return false;
                 const f = srvFecha(s);
                 if (f) {
                     const k = formatFecha(f);
@@ -4135,7 +4135,8 @@
 
                 labels.forEach((lbl, idx) => {
                     // Reconstruir la fecha actual a partir del inicio del periodo + índice
-                    const fechaActual = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + idx);
+                    const fechaActual = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                    fechaActual.setDate(fechaActual.getDate() + idx);
 
                     // Calcular fecha del periodo anterior (restar offsetDias)
                     const fechaAnterior = new Date(fechaActual);
