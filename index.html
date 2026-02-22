@@ -520,7 +520,7 @@
         .proy-row { display:flex; justify-content:space-between; align-items:flex-start; padding:8px 0; border-bottom:1px solid #f3f4f6; }
         .proy-row:last-child { border-bottom:none; }
         .badge-compra { background:rgba(249,115,22,0.15); color:#f97316; border:1px solid #f97316; }
-        .span-6{grid-column:span 6;} .span-4{grid-column:span 4;} .span-3{grid-column:span 3;} .span-12{grid-column:span 12;}
+        .span-6{grid-column:span 6;} .span-4{grid-column:span 4;} .span-3{grid-column:span 3;} .span-12{grid-column:span 12;} .span-8{grid-column:span 8;}
         .chart-container { position:relative; height:300px; margin-top:10px; }
         .chart-container-small { position:relative; height:200px; margin-top:10px; }
         .connection-status { position:fixed; bottom:20px; right:20px; padding:10px 20px; border-radius:20px; background:rgba(46,204,113,0.15); border:1px solid #2ecc71; color:#2ecc71; font-size:12px; z-index:1000; }
@@ -1161,7 +1161,7 @@
                 </div>
 
                 <!-- Gráfica Mixta -->
-                <div class="glass-card span-12">
+                <div class="glass-card span-8">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
                         <div class="card-title" style="margin-bottom:0;">📈 Análisis por Dimensión</div>
                         <div style="display:flex;align-items:center;gap:6px;">
@@ -1197,6 +1197,14 @@
                             <span style="width:24px;height:3px;background:#FFC107;display:inline-block;"></span>
                             Línea = Nº Folios
                         </span>
+                    </div>
+                </div>
+
+                <!-- Gráfica Pie Dimensión -->
+                <div class="glass-card span-4">
+                    <div class="card-title">🥧 Distribución por Dimensión</div>
+                    <div style="position:relative;height:300px;">
+                        <canvas id="chart-dim-pie" aria-label="Distribución de Total Venta por dimensión seleccionada"></canvas>
                     </div>
                 </div>
 
@@ -3920,17 +3928,17 @@
                     { // exterior: Total Ventas
                         data: [totalFil, totalRest],
                         backgroundColor: ['#4CAF50','#e5e7eb'],
-                        borderWidth: 0, radius: '100%', cutout: '70%'
+                        borderWidth: 0, radius: '100%', cutout: '66%'
                     },
                     { // medio: Margen
                         data: [margenFil, margenRest],
                         backgroundColor: ['#2196F3','#e5e7eb'],
-                        borderWidth: 0, radius: '68%', cutout: '52%'
+                        borderWidth: 0, radius: '66%', cutout: '40%'
                     },
                     { // interior: Folios
                         data: [foliosFil, foliosRest],
                         backgroundColor: ['#FFC107','#e5e7eb'],
-                        borderWidth: 0, radius: '48%', cutout: '34%'
+                        borderWidth: 0, radius: '40%', cutout: '22%'
                     }
                 ]
             };
@@ -4017,6 +4025,7 @@
                 chartMixed.data.datasets = datasets; 
                 chartMixed.update(); 
                 console.log('✅ Gráfica mixta actualizada');
+                updateDimPieChart(filtered);
                 return; 
             }
             
@@ -4026,7 +4035,14 @@
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { display: false } },
+                    plugins: { legend: { display: false }, tooltip: {
+                        callbacks: {
+                            label: c => {
+                                if (c.dataset.yAxisID === 'y2') return `${c.dataset.label}: ${c.parsed.y}`;
+                                return `${c.dataset.label}: ${formatCurrency(c.parsed.y)}`;
+                            }
+                        }
+                    }},
                     scales: {
                         x: { ticks: { color: '#2e4a30', maxRotation: 45, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.07)' } },
                         y: { ticks: { color: '#2e4a30', callback: v => '$'+v.toLocaleString('es-MX',{maximumFractionDigits:0}) }, grid: { color: 'rgba(0,0,0,0.07)' } },
@@ -4035,6 +4051,65 @@
                 }
             });
             console.log('✅ Gráfica mixta creada por primera vez');
+            updateDimPieChart(filtered);
+        }
+
+        // Gráfica pie distribución por dimensión
+        let chartDimPie = null;
+        const PIE_COLORS = ['#4CAF50','#2196F3','#FFC107','#E91E63','#9C27B0','#FF5722','#00BCD4','#FF9800','#8BC34A','#F44336','#3F51B5','#009688'];
+        function updateDimPieChart(filtered) {
+            const ctx = document.getElementById('chart-dim-pie');
+            if (!ctx) return;
+            if (!filtered) {
+                filtered = filterVentasByDim(appState.ventasData || []);
+            }
+            const dim = document.getElementById('dim-axis-selector')?.value || 'fecha';
+            const dimMap = {
+                'fecha': r => (r['Fecha ef-Venta']||r['Fecha Venta']||'').substring(0,10),
+                'recep': r => (r['Folio##Recepción']||r['Folio Recepción']||'').trim() ? 'Con Servicio' : 'Sin Servicio',
+                'anticipo': r => (r['Datos##Anticipo']||r['Folio Anticipo']||'').trim() ? 'Con Anticipo' : 'Sin Anticipo',
+                'dispositivo': r => r['Dispositivo']||'N/D',
+                'marca': r => r['Marca']||'N/D',
+                'modelo': r => r['Modelo_Ver']||r['Modelo']||'N/D',
+                'resultado': r => r['Resultado del Servicio']||r['Resultado']||'N/D',
+                'debidoa': r => r['Debido a']||'N/D',
+                'tiposol': r => r['Tipo Solicitud']||'N/D',
+                'subtiposol': r => r['Subtipo Solicitud']||'N/D',
+                'tiposrv': r => r['Tipo Servicio']||r['TipoServicio']||'N/D',
+            };
+            const getKey = dimMap[dim] || dimMap['fecha'];
+            const grouped = {};
+            filtered.forEach(r => {
+                const k = getKey(r);
+                const tv = parseFloat((r['Total Venta']||'').replace(/[^0-9.-]/g,''))||0;
+                grouped[k] = (grouped[k]||0) + tv;
+            });
+            const labels = Object.keys(grouped).sort((a,b) => grouped[b]-grouped[a]);
+            const values = labels.map(k => grouped[k]);
+            const total = values.reduce((s,v)=>s+v,0);
+            const colors = labels.map((_,i) => PIE_COLORS[i % PIE_COLORS.length]);
+            const newData = { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 1 }] };
+            if (chartDimPie) {
+                chartDimPie.data = newData;
+                chartDimPie.update();
+                return;
+            }
+            chartDimPie = new Chart(ctx, {
+                type: 'doughnut',
+                data: newData,
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, color: '#374151' } },
+                        tooltip: { callbacks: {
+                            label: c => {
+                                const pct = total > 0 ? (c.parsed/total*100).toFixed(1) : '0.0';
+                                return `${c.label}: ${formatCurrency(c.parsed)} (${pct}%)`;
+                            }
+                        }}
+                    }
+                }
+            });
         }
 
         // Inyectar periodos anteriores en la gráfica principal de ventas
